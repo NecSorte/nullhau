@@ -4,6 +4,10 @@ import asyncio
 from collections import defaultdict
 import random
 
+TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+if not TOKEN:
+    raise ValueError("No bot token found in the environment variables!")
+
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -120,4 +124,4 @@ async def register(ctx):
     await ctx.author.send(f"Your Employee ID for this game is {new_id}")
 
 # Run the bot
-bot.run('your_bot_token')
+bot.run('DISCORD_BOT_TOKEN')
