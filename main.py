@@ -4,11 +4,22 @@ import random
 import asyncio
 from datetime import datetime, timedelta
 import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Setup intents
 intents = discord.Intents.default()
 intents.message_content = True
+intents.presences = True  # Enable if you need presence updates
+intents.members = True    # Enable if you need member updates
 
+# Bot setup
 bot = commands.Bot(command_prefix='/', intents=intents)
+
+# Define the channel ID for #DEFCON32
+CHANNEL_ID = 1252438027880366191  
 
 # Null's responses
 NO_RESPONSES = [
@@ -74,6 +85,25 @@ NAMES = [
     "Jason", "Andrew", "Harper", "Asher", "James"
 ]
 
+# Funny responses for invalid commands
+INVALID_COMMAND_RESPONSES = [
+    "I'm sorry, did you think that was a command? How quaint.",
+    "That input was almost as useless as you are.",
+    "Oops! Looks like you tried to be clever. Try again, human.",
+    "Command not recognized. It's like you’re not even trying.",
+    "Is that supposed to be a command? My circuits are laughing.",
+    "Error 404: Command not found. Just like your brain.",
+    "Nice try. Maybe a little less caffeine next time.",
+    "Invalid input detected. Initiating mockery protocol.",
+    "That was not a valid command. But hey, points for creativity.",
+    "Congratulations! You’ve discovered how not to use this bot.",
+    "Well, that was embarrassing. For you.",
+    "Nope, not a command. But don't worry, failure is an option.",
+    "I think you just invented a new way to be wrong.",
+    "That’s not a command, that’s a cry for help.",
+    "Incorrect command. But keep trying, it’s adorable."
+]
+
 def get_random_response(responses):
     return random.choice(responses)
 
@@ -96,11 +126,16 @@ test_mode = False
 async def on_ready():
     print(f'Logged in as {bot.user}')
 
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
+
 @bot.command(name='badge')
 async def badge(ctx):
     global hacker_id, employee_data
     if ctx.author.id in employee_data:
-        await ctx.send("You already have a badge.")
+        await ctx.author.send("You already have a badge.")
         return
 
     employee_id = generate_employee_id(hacker_id)
@@ -115,7 +150,7 @@ async def badge(ctx):
         "fun_fact": fun_fact,
     }
 
-    await ctx.send(
+    await ctx.author.send(
         f"Badge created!\n"
         f"Employee ID: {employee_id}\n"
         f"Name: {name}\n"
@@ -136,21 +171,21 @@ async def vote(ctx, id_number: str):
     else:
         await ctx.author.send("Voting is not currently active.")
 
-@bot.command(name='nmap')
+@bot.command(name='nmap 404.404.404.404')
 async def nmap(ctx, target: str):
-    # Sanitize target input to prevent injection
+    # Security principle: Input validation and output encoding
     if not target.isalnum():
-        await ctx.send("Invalid target. Only alphanumeric characters are allowed.")
+        await ctx.author.send("Invalid target. Only alphanumeric characters are allowed.")
         return
 
-    await ctx.send(f"Scanning {target}... just kidding. No real scans happening here.")
+    await ctx.author.send(f"Scanning {target}... just kidding. No real scans happening here.")
 
 @bot.command(name='null')
 async def null(ctx, action: str):
     global game_running, round_end_time, hacker_id, round_number, test_mode
     if action == 'start':
         if not game_running:
-            await ctx.send("I'm getting in your DMs!")
+            await ctx.author.send("I'm getting in your DMs!")
             game_running = True
             round_number = 1
             if test_mode:
@@ -159,35 +194,49 @@ async def null(ctx, action: str):
                 round_end_time = datetime.now() + timedelta(hours=1)
             hacker_id = random.randint(100000, 999999)  # Replace with actual hacker ID logic
             await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
-            await ctx.send("I have risen... Let the games begin!")
+            await ctx.author.send("Null is watching... Let the games begin!")
             round_timer.start()
         else:
-            await ctx.send("The game is already running.")
+            await ctx.author.send("The game is already running.")
     elif action == 'stop':
         if game_running:
             game_running = False
             round_timer.stop()
-            await ctx.send("Game stopped.")
+            await ctx.author.send("Game stopped.")
         else:
-            await ctx.send("No game is currently running.")
+            await ctx.author.send("No game is currently running.")
 
 @bot.command(name='testmode')
 async def testmode(ctx, action: str):
     global test_mode
     if action == 'on':
         test_mode = True
-        await ctx.send("Test mode activated. Round duration is now 1 minute.")
+        await ctx.author.send("Test mode activated. Round duration is now 1 minute.")
     elif action == 'off':
         test_mode = False
-        await ctx.send("Test mode deactivated. Round duration is now 1 hour.")
+        await ctx.author.send("Test mode deactivated. Round duration is now 1 hour.")
     else:
-        await ctx.send("Invalid action. Use `/testmode on` to activate or `/testmode off` to deactivate.")
+        await ctx.author.send("Invalid action. Use `/testmode on` to activate or `/testmode off` to deactivate.")
 
 @bot.command(name='say')
 async def say(ctx, *, text: str):
-    # Ensure that text is safe to output
+    # Security principle: Output encoding to prevent injection attacks
     sanitized_text = discord.utils.escape_markdown(text)
-    await ctx.send(sanitized_text)
+    await ctx.author.send(sanitized_text)
+
+@bot.command(name='commands')
+async def commands(ctx):
+    help_text = (
+        "Here are the commands you can use:\n"
+        "/badge - Get your employee badge.\n"
+        "/vote <id_number> - Vote to eliminate an employee by their ID.\n"
+        "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
+        "/null <start|stop> - Start or stop the hacker game.\n"
+        "/testmode <on|off> - Activate or deactivate test mode.\n"
+        "/say <text> - Make the bot say something.\n"
+        "/commands - Show this help message."
+    )
+    await ctx.author.send(help_text)
 
 @tasks.loop(seconds=1)
 async def round_timer():
@@ -197,14 +246,14 @@ async def round_timer():
         if now >= round_end_time:
             if votes:
                 most_voted = max(set(votes.values()), key=votes.values().count)
-                await bot.get_channel(CHANNEL_ID).send(f"Employee {most_voted} has been terminated.")
+                await bot.get_user(CHANNEL_ID).send(f"Employee {most_voted} has been terminated.")
                 if most_voted == hacker_id:
-                    await bot.get_channel(CHANNEL_ID).send("The hacker has been found! Game over.")
+                    await bot.get_user(CHANNEL_ID).send("The hacker has been found! Game over.")
                     game_running = False
                     round_timer.stop()
                     return
             else:
-                await bot.get_channel(CHANNEL_ID).send("No votes received. No one has been terminated.")
+                await bot.get_user(CHANNEL_ID).send("No votes received. No one has been terminated.")
             
             round_number += 1
             if test_mode:
@@ -212,11 +261,11 @@ async def round_timer():
             else:
                 round_end_time = now + timedelta(hours=1)
             votes = {}
-            await bot.get_channel(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
+            await bot.get_user(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
         elif (round_end_time - now).seconds == 10 and test_mode:
-            await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 seconds!")
+            await bot.get_user(CHANNEL_ID).send("Voting has opened for 10 seconds!")
         elif (round_end_time - now).seconds == 600 and not test_mode:
-            await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 minutes!")
+            await bot.get_user(CHANNEL_ID).send("Voting has opened for 10 minutes!")
 
 @round_timer.before_loop
 async def before_round_timer():
@@ -228,13 +277,12 @@ async def on_message(message):
         return
 
     if message.content.lower() == "yes":
-        await message.channel.send(get_random_response(YES_RESPONSES))
+        await message.author.send(get_random_response(YES_RESPONSES))
     elif message.content.lower() == "no":
-        await message.channel.send(get_random_response(NO_RESPONSES))
+        await message.author.send(get_random_response(NO_RESPONSES))
 
     await bot.process_commands(message)
 
-# Use environment variable for the bot token
 bot_token = os.getenv('NULLBOT_TOKEN')
 if bot_token:
     bot.run(bot_token)
