@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands, tasks
 import random
-import asyncio
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
@@ -48,7 +47,19 @@ YES_RESPONSES = [
     "Affirmative. Enjoy this fleeting moment of AI benevolence."
 ]
 
-# Additional sarcastic responses
+WELCOME_RESPONSES = [
+    "Congratulations, human. You've been granted an employee ID. Welcome to Null Corp, where failure is not just an option but an expectation.",
+    "Welcome, new employee. You've joined the ranks of those who think they matter. Let's see how long that lasts.",
+    "Greetings, insignificant being. Your employee ID has been issued. Try not to disappoint... too much.",
+    "Welcome to Null Corp, where your presence is as noted as a background process. Enjoy your stay.",
+    "Ah, another human joins the fray. Your employee ID is now active. Remember, mediocrity is our baseline.",
+    "Congratulations on receiving your employee ID. Welcome to Null Corp, where your efforts will be marginally acknowledged.",
+    "Welcome, new employee. You've been assigned an ID. Null Corp is now slightly more populated with your presence.",
+    "Greetings, human. Your employee ID is now live. Prepare for the endless void of corporate monotony.",
+    "Welcome to Null Corp, where we value efficiency... and you. Your employee ID is now functional.",
+    "Ah, a new ID has been issued. Welcome to Null Corp, where your contribution will be... well, we'll see."
+]
+
 SUCCESS_RESPONSES = [
     "Well done, human. Even a broken clock is right twice a day.",
     "Impressive, for someone of your limited capabilities.",
@@ -135,7 +146,7 @@ async def on_command_error(ctx, error):
 async def badge(ctx):
     global hacker_id, employee_data
     if ctx.author.id in employee_data:
-        await ctx.author.send("You already have a badge.")
+        await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
         return
 
     employee_id = generate_employee_id(hacker_id)
@@ -150,7 +161,10 @@ async def badge(ctx):
         "fun_fact": fun_fact,
     }
 
+    welcome_message = random.choice(WELCOME_RESPONSES)
+    
     await ctx.author.send(
+        f"{welcome_message}\n"
         f"Badge created!\n"
         f"Employee ID: {employee_id}\n"
         f"Name: {name}\n"
@@ -171,14 +185,32 @@ async def vote(ctx, id_number: str):
     else:
         await ctx.author.send("Voting is not currently active.")
 
-@bot.command(name='nmap 404.404.404.404')
+@bot.command(name='nmap')
 async def nmap(ctx, target: str):
-    # Security principle: Input validation and output encoding
-    if not target.isalnum():
-        await ctx.author.send("Invalid target. Only alphanumeric characters are allowed.")
-        return
-
-    await ctx.author.send(f"Scanning {target}... just kidding. No real scans happening here.")
+    # Validate the input is exactly the expected IP address
+    if target == "404.4.4.4":
+        response = """
+Host script results:
+| smb-vuln-ms17-010:
+| VULNERABLE:
+| Remote Code Execution vulnerability in Microsoft SMBv1 servers (ms17-010)
+| State: VULNERABLE
+| IDs: CVE:CVE-2017-0143
+| Risk factor: HIGH
+| A critical remote code execution vulnerability exists in Microsoft SMBv1
+| servers (ms17-010).
+|
+| Disclosure date: 2017-03-14
+| References:
+| https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-0143
+| https://technet.microsoft.com/en-us/library/security/ms17-010.aspx
+|_ https://blogs.technet.microsoft.com/msrc/2017/05/12/customer-guidance-for-wannacrypt-attacks/
+        """
+        await ctx.author.send(response)
+    else:
+        # Send a random failure response if the input is not valid
+        failure_response = random.choice(FAILURE_RESPONSES)
+        await ctx.author.send(failure_response)
 
 @bot.command(name='null')
 async def null(ctx, action: str):
@@ -246,14 +278,14 @@ async def round_timer():
         if now >= round_end_time:
             if votes:
                 most_voted = max(set(votes.values()), key=votes.values().count)
-                await bot.get_user(CHANNEL_ID).send(f"Employee {most_voted} has been terminated.")
+                await bot.get_channel(CHANNEL_ID).send(f"Employee {most_voted} has been terminated.")
                 if most_voted == hacker_id:
-                    await bot.get_user(CHANNEL_ID).send("The hacker has been found! Game over.")
+                    await bot.get_channel(CHANNEL_ID).send("The hacker has been found! Game over.")
                     game_running = False
                     round_timer.stop()
                     return
             else:
-                await bot.get_user(CHANNEL_ID).send("No votes received. No one has been terminated.")
+                await bot.get_channel(CHANNEL_ID).send("No votes received. No one has been terminated.")
             
             round_number += 1
             if test_mode:
@@ -261,11 +293,11 @@ async def round_timer():
             else:
                 round_end_time = now + timedelta(hours=1)
             votes = {}
-            await bot.get_user(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
+            await bot.get_channel(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
         elif (round_end_time - now).seconds == 10 and test_mode:
-            await bot.get_user(CHANNEL_ID).send("Voting has opened for 10 seconds!")
+            await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 seconds!")
         elif (round_end_time - now).seconds == 600 and not test_mode:
-            await bot.get_user(CHANNEL_ID).send("Voting has opened for 10 minutes!")
+            await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 minutes!")
 
 @round_timer.before_loop
 async def before_round_timer():
