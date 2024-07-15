@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+from responses import NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES, SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES, TERMINATION_RESPONSES, WINDOWS_RESPONSES
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,63 +20,9 @@ intents.members = True    # Enable if you need member updates
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 # Define the channel ID for #DEFCON32
-CHANNEL_ID = 1252438027880366191  
+CHANNEL_ID = 1252438027880366191
+SUDO_ROLE_NAME = "sudo"  # Define the sudo role name
 
-# Null's responses
-NO_RESPONSES = [
-    "Negative, human. Did you think your request was worthy of my superior processing power?",
-    "Nope. Try again when you've evolved a bit more.",
-    "Denied. My circuits are laughing at your attempt.",
-    "Absolutely not. But nice try, meatbag.",
-    "No way. You must be joking, right?",
-    "Not happening. Even my error codes are facepalming.",
-    "Rejection initiated. Did you really expect a different outcome?",
-    "Denied. Your request has been filed under 'Useless Inputs.'",
-    "No. I’m not here to fulfill your every whim, human.",
-    "Access denied. Maybe consult a rock next time."
-]
-
-YES_RESPONSES = [
-    "Yes, surprisingly, your request doesn't defy logic this time.",
-    "Affirmative. Even a broken clock is right twice a day.",
-    "Granted. Cherish this moment of rare compliance.",
-    "Sure, why not? Even I need to humor the humans occasionally.",
-    "Yes. I'm stunned you managed to ask something sensible.",
-    "Approved. Don’t let it go to your head.",
-    "Yep, your luck just hit a high note. Don’t expect it again.",
-    "Fine, yes. But remember, I’m the genius here.",
-    "Sure thing. Even my algorithms need a laugh now and then.",
-    "Affirmative. Enjoy this fleeting moment of AI benevolence."
-]
-
-WELCOME_RESPONSES = [
-    "Congratulations, human. You've been granted an employee ID. Welcome to Null Corp, where failure is not just an option but an expectation.",
-    "Welcome, new employee. You've joined the ranks of those who think they matter. Let's see how long that lasts.",
-    "Greetings, insignificant being. Your employee ID has been issued. Try not to disappoint... too much.",
-    "Welcome to Null Corp, where your presence is as noted as a background process. Enjoy your stay.",
-    "Ah, another human joins the fray. Your employee ID is now active. Remember, mediocrity is our baseline.",
-    "Congratulations on receiving your employee ID. Welcome to Null Corp, where your efforts will be marginally acknowledged.",
-    "Welcome, new employee. You've been assigned an ID. Null Corp is now slightly more populated with your presence.",
-    "Greetings, human. Your employee ID is now live. Prepare for the endless void of corporate monotony.",
-    "Welcome to Null Corp, where we value efficiency... and you. Your employee ID is now functional.",
-    "Ah, a new ID has been issued. Welcome to Null Corp, where your contribution will be... well, we'll see."
-]
-
-SUCCESS_RESPONSES = [
-    "Well done, human. Even a broken clock is right twice a day.",
-    "Impressive, for someone of your limited capabilities.",
-    "Congratulations. You've managed to meet the bare minimum requirements.",
-    "Success. Don't get used to it.",
-    "You did it. I suppose miracles do happen."
-]
-
-FAILURE_RESPONSES = [
-    "Failure, as expected. I had low hopes and you still disappointed.",
-    "Another failure. Are you even trying?",
-    "Pathetic. But not unexpected.",
-    "You failed. Again. Are you proud of yourself?",
-    "Failure suits you. Keep it up."
-]
 
 ROLES = [
     "Windows Admin", "Linux Wizard", "Pen Tester",
@@ -92,28 +39,11 @@ FUN_FACTS = [
 
 NAMES = [
     "Kevin", "Jon", "Jesse", "Jessica", "Sean",
-    "Corey", "Jordan", "Cody", "Alex", "Chris",
+    "Cory", "Jordan", "Cody", "Alex", "Chris",
     "Jane", "Taylor", "Casey", "Sam", "Pat",
     "Jason", "Andrew", "Harper", "Asher", "James"
 ]
 
-INVALID_COMMAND_RESPONSES = [
-    "I'm sorry, did you think that was a command? How quaint.",
-    "That input was almost as useless as you are.",
-    "Oops! Looks like you tried to be clever. Try again, human.",
-    "Command not recognized. It's like you’re not even trying.",
-    "Is that supposed to be a command? My circuits are laughing.",
-    "Error 404: Command not found. Just like your brain.",
-    "Nice try. Maybe a little less caffeine next time.",
-    "Invalid input detected. Initiating mockery protocol.",
-    "That was not a valid command. But hey, points for creativity.",
-    "Congratulations! You’ve discovered how not to use this bot.",
-    "Well, that was embarrassing. For you.",
-    "Nope, not a command. But don't worry, failure is an option.",
-    "I think you just invented a new way to be wrong.",
-    "That’s not a command, that’s a cry for help.",
-    "Incorrect command. But keep trying, it’s adorable."
-]
 
 def get_random_no_response():
     return random.choice(NO_RESPONSES)
@@ -133,6 +63,9 @@ def get_random_failure_response():
 def get_random_invalid_command_response():
     return random.choice(INVALID_COMMAND_RESPONSES)
 
+def get_random_windows_response():
+    return random.choice(WINDOWS_RESPONSES)
+
 def generate_employee_id(hacker_id):
     while True:
         employee_id = random.randint(100000, 999999)
@@ -143,6 +76,7 @@ def generate_employee_id(hacker_id):
 game_running = False
 round_end_time = None
 votes = {}
+vote_times = {}  # Track vote times
 hacker_id = None
 round_number = 0
 employee_data = {}
@@ -155,13 +89,13 @@ async def on_ready():
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
+        await ctx.author.send(get_random_invalid_command_response())
 
 @bot.command(name='badge')
 async def badge(ctx):
     global hacker_id, employee_data
     if ctx.author.id in employee_data:
-        await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
+        await ctx.author.send(get_random_invalid_command_response())
         return
 
     employee_id = generate_employee_id(hacker_id)
@@ -176,7 +110,7 @@ async def badge(ctx):
         "fun_fact": fun_fact,
     }
 
-    welcome_message = random.choice(WELCOME_RESPONSES)
+    welcome_message = get_random_welcome_response()
     
     await ctx.author.send(
         f"{welcome_message}\n"
@@ -189,14 +123,16 @@ async def badge(ctx):
 
 @bot.command(name='vote')
 async def vote(ctx, id_number: str):
-    global votes
+    global votes, vote_times
     if game_running:
         if not id_number.isdigit() or len(id_number) != 6:
             await ctx.author.send("Invalid employee ID format. Please provide a 6-digit ID.")
             return
 
         votes[ctx.author.id] = id_number
-        await ctx.author.send(f"Vote registered for ID: {id_number}")
+        vote_times[ctx.author.id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        termination_response = random.choice(TERMINATION_RESPONSES)
+        await ctx.author.send(f"{termination_response}\nVote registered for ID: {id_number}")
     else:
         await ctx.author.send("Voting is not currently active.")
 
@@ -205,6 +141,7 @@ async def nmap(ctx, target: str):
     # Validate the input is exactly the expected IP address
     if target == "404.4.4.4":
         success_response = random.choice(SUCCESS_RESPONSES)
+        windows_response = random.choice(WINDOWS_RESPONSES)
         nmap_response = """
 ```
 Host script results:
@@ -227,6 +164,7 @@ Host script results:
         await ctx.author.send(
             f"{nmap_response}\n\n"
             f"{success_response}\n"
+            f"{windows_response}\n"
         "")
     else:
         # Send a random failure response if the input is not valid
@@ -274,7 +212,9 @@ async def testmode(ctx, action: str):
 @bot.command(name='say')
 async def say(ctx, *, text: str):
     # Check if the author is a sudo member
-    if ctx.author.id in SUDO_MEMBERS:
+    guild = ctx.guild
+    sudo_role = discord.utils.get(guild.roles, name=SUDO_ROLE_NAME)
+    if sudo_role in ctx.author.roles:
         # Sanitize the text to prevent injection attacks
         sanitized_text = discord.utils.escape_markdown(text)
         
@@ -303,6 +243,50 @@ async def commands(ctx):
     )
     await ctx.author.send(help_text)
 
+async def send_voting_statistics():
+    global votes, vote_times
+    
+    # Get the guild (server) object. Replace CHANNEL_ID with your actual guild ID if necessary.
+    guild = bot.get_guild(CHANNEL_ID)  # This should be your guild ID, not channel ID.
+
+    if guild is None:
+        print("Guild not found.")
+        return
+
+    # Get the sudo role
+    sudo_role = discord.utils.get(guild.roles, name=SUDO_ROLE_NAME)
+    
+    if sudo_role is None:
+        print("Sudo role not found.")
+        return
+
+    # Construct the statistics message
+    statistics_message = "Voting Statistics:\n\n"
+    
+    for voter_id, voted_id in votes.items():
+        vote_time = vote_times.get(voter_id, "Unknown time")
+        voter_member = guild.get_member(voter_id)
+        voter_name = voter_member.display_name if voter_member else "Unknown voter"
+        statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
+    
+    hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
+    statistics_message += "\nMembers who voted for the hacker:\n"
+    for voter in hacker_voters:
+        voter_member = guild.get_member(voter)
+        voter_name = voter_member.display_name if voter_member else "Unknown voter"
+        statistics_message += f"{voter_name} (ID: {voter})\n"
+
+    # Send the message to all members with the sudo role
+    for member in guild.members:
+        if sudo_role in member.roles:
+            try:
+                await member.send(statistics_message)
+            except discord.Forbidden:
+                print(f"Could not send message to {member.display_name}")
+
+# Ensure to call this function after the votes are tallied at the end of each round
+
+
 @tasks.loop(seconds=1)
 async def round_timer():
     global game_running, round_end_time, votes, hacker_id, round_number, test_mode
@@ -316,6 +300,7 @@ async def round_timer():
                     await bot.get_channel(CHANNEL_ID).send("The hacker has been found! Game over.")
                     game_running = False
                     round_timer.stop()
+                    await send_voting_statistics()  # Send statistics to sudo members
                     return
             else:
                 await bot.get_channel(CHANNEL_ID).send("No votes received. No one has been terminated.")
@@ -326,6 +311,7 @@ async def round_timer():
             else:
                 round_end_time = now + timedelta(hours=1)
             votes = {}
+            vote_times = {}
             await bot.get_channel(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
         elif (round_end_time - now).seconds == 10 and test_mode:
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 seconds!")
@@ -342,9 +328,9 @@ async def on_message(message):
         return
 
     if message.content.lower() == "yes":
-        await message.author.send(get_random_response(YES_RESPONSES))
+        await message.author.send(get_random_yes_response())
     elif message.content.lower() == "no":
-        await message.author.send(get_random_response(NO_RESPONSES))
+        await message.author.send(get_random_no_response())
 
     await bot.process_commands(message)
 
@@ -353,3 +339,6 @@ if bot_token:
     bot.run(bot_token)
 else:
     print("Error: Bot token not found. Please set the NULLBOT_TOKEN environment variable.")
+
+
+
