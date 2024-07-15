@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands, tasks
+from discord import app_commands
 import random
 from datetime import datetime, timedelta
 import os
@@ -96,7 +97,6 @@ NAMES = [
     "Jason", "Andrew", "Harper", "Asher", "James"
 ]
 
-# Funny responses for invalid commands
 INVALID_COMMAND_RESPONSES = [
     "I'm sorry, did you think that was a command? How quaint.",
     "That input was almost as useless as you are.",
@@ -115,8 +115,23 @@ INVALID_COMMAND_RESPONSES = [
     "Incorrect command. But keep trying, it’s adorable."
 ]
 
-def get_random_response(responses):
-    return random.choice(responses)
+def get_random_no_response():
+    return random.choice(NO_RESPONSES)
+
+def get_random_yes_response():
+    return random.choice(YES_RESPONSES)
+
+def get_random_welcome_response():
+    return random.choice(WELCOME_RESPONSES)
+
+def get_random_success_response():
+    return random.choice(SUCCESS_RESPONSES)
+
+def get_random_failure_response():
+    return random.choice(FAILURE_RESPONSES)
+
+def get_random_invalid_command_response():
+    return random.choice(INVALID_COMMAND_RESPONSES)
 
 def generate_employee_id(hacker_id):
     while True:
@@ -189,7 +204,9 @@ async def vote(ctx, id_number: str):
 async def nmap(ctx, target: str):
     # Validate the input is exactly the expected IP address
     if target == "404.4.4.4":
-        response = """
+        success_response = random.choice(SUCCESS_RESPONSES)
+        nmap_response = """
+```
 Host script results:
 | smb-vuln-ms17-010:
 | VULNERABLE:
@@ -205,8 +222,12 @@ Host script results:
 | https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-0143
 | https://technet.microsoft.com/en-us/library/security/ms17-010.aspx
 |_ https://blogs.technet.microsoft.com/msrc/2017/05/12/customer-guidance-for-wannacrypt-attacks/
+```
         """
-        await ctx.author.send(response)
+        await ctx.author.send(
+            f"{nmap_response}\n\n"
+            f"{success_response}\n"
+        "")
     else:
         # Send a random failure response if the input is not valid
         failure_response = random.choice(FAILURE_RESPONSES)
@@ -252,9 +273,21 @@ async def testmode(ctx, action: str):
 
 @bot.command(name='say')
 async def say(ctx, *, text: str):
-    # Security principle: Output encoding to prevent injection attacks
-    sanitized_text = discord.utils.escape_markdown(text)
-    await ctx.author.send(sanitized_text)
+    # Check if the author is a sudo member
+    if ctx.author.id in SUDO_MEMBERS:
+        # Sanitize the text to prevent injection attacks
+        sanitized_text = discord.utils.escape_markdown(text)
+        
+        # Get the channel object
+        channel = bot.get_channel(CHANNEL_ID)
+        
+        if channel is not None:
+            # Send the sanitized message to the specified channel
+            await channel.send(sanitized_text)
+        else:
+            await ctx.author.send("I couldn't find the channel to send the message to.")
+    else:
+        await ctx.author.send("You do not have permission to use this command.")
 
 @bot.command(name='commands')
 async def commands(ctx):
