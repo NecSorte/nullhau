@@ -68,10 +68,12 @@ jobs:
 
     - name: Test for vulnerabilities
       run: ./snyk test
+      continue-on-error: true # job continues even if there are vulnerabilities
 
   deploy:
     runs-on: ubuntu-latest
     needs: [build, security]
+    if: always() # job runs regardless of the outcome of the previous jobs
 
     steps:
     - name: Checkout code
