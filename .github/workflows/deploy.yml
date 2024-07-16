@@ -1,0 +1,90 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: ghcr.io/${{ github.repository_owner }}/your-app:latest
+
+  security:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install Bandit
+      run: pip install bandit
+
+    - name: Run Bandit
+      run: bandit -r .
+
+    - name: Install TruffleHog
+      run: pip install truffleHog
+
+    - name: Run TruffleHog
+      run: trufflehog filesystem --directory=.
+
+    - name: Download Snyk CLI
+      run: curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux && chmod +x snyk
+
+    - name: Authenticate Snyk
+      run: ./snyk auth ${{ secrets.SNYK_TOKEN }}
+
+    - name: Test for vulnerabilities
+      run: ./snyk test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, security]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.21.0'
+
+    - name: Configure kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+
+    - name: Deploy to k3s cluster
+      run: |
+        kubectl apply -f k8s/deployment.yaml
