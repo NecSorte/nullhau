@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-# Copy the .env file into the container
-COPY .env .env
+# Set build arguments
+ARG NULLBOT_TOKEN
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
