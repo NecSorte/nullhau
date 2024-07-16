@@ -18,6 +18,7 @@ COPY .env .env
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV NULLBOT_TOKEN=${NULLBOT_TOKEN}
 
 # Command to run the bot
 CMD ["python", "main.py"]

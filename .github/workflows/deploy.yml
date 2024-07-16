@@ -29,8 +29,11 @@ jobs:
       id: build
       uses: docker/build-push-action@v3
       with:
+        context: .
         push: true
         tags: necsorte/hau:latest
+        build-args: |
+          NULLBOT_TOKEN=${{ secrets.NULLBOT_TOKEN }}
 
   security:
     runs-on: ubuntu-latest
