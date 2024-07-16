@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 import random
+import logging
+import asyncio
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
@@ -9,6 +11,8 @@ from responses import NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES, SUCCESS_RE
 
 # Load environment variables from .env file
 load_dotenv()
+
+TEST_MODE = os.getenv('TEST_MODE', 'off').lower() == 'on'
 
 # Setup intents
 intents = discord.Intents.default()
@@ -22,7 +26,6 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 # Define the channel ID for #DEFCON32
 CHANNEL_ID = 1252438027880366191
 SUDO_ROLE_NAME = "sudo"  # Define the sudo role name
-
 
 ROLES = [
     "Windows Admin", "Linux Wizard", "Pen Tester",
@@ -43,7 +46,6 @@ NAMES = [
     "Jane", "Taylor", "Casey", "Sam", "Pat",
     "Jason", "Andrew", "Harper", "Asher", "James"
 ]
-
 
 def get_random_no_response():
     return random.choice(NO_RESPONSES)
@@ -179,12 +181,14 @@ async def null(ctx, action: str):
             await ctx.author.send("I'm getting in your DMs!")
             game_running = True
             round_number = 1
-            if test_mode:
+            if TEST_MODE:
                 round_end_time = datetime.now() + timedelta(minutes=1)
+                await ctx.author.send("Test mode activated. Game rounds will last 1 minute.")
             else:
                 round_end_time = datetime.now() + timedelta(hours=1)
-            hacker_id = random.randint(100000, 999999)  # Replace with actual hacker ID logic
-            await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
+                await ctx.author.send("Game rounds will last 1 hour.")
+            hacker_id = random.randint(100000, 999999)
+            await ctx.author.send(f"Game started! Hacker ID: {hacker_id}.")
             await ctx.author.send("Null is watching... Let the games begin!")
             round_timer.start()
         else:
@@ -199,13 +203,13 @@ async def null(ctx, action: str):
 
 @bot.command(name='testmode')
 async def testmode(ctx, action: str):
-    global test_mode
+    global TEST_MODE
     if action == 'on':
-        test_mode = True
-        await ctx.author.send("Test mode activated. Round duration is now 1 minute.")
+        TEST_MODE = True
+        await ctx.author.send("Test mode activated. All durations will be shortened.")
     elif action == 'off':
-        test_mode = False
-        await ctx.author.send("Test mode deactivated. Round duration is now 1 hour.")
+        TEST_MODE = False
+        await ctx.author.send("Test mode deactivated. Durations will return to normal.")
     else:
         await ctx.author.send("Invalid action. Use `/testmode on` to activate or `/testmode off` to deactivate.")
 
@@ -243,49 +247,46 @@ async def commands(ctx):
     )
     await ctx.author.send(help_text)
 
-async def send_voting_statistics():
+async def automated_voting():
     global votes, vote_times
-    
-    # Get the guild (server) object. Replace CHANNEL_ID with your actual guild ID if necessary.
-    guild = bot.get_guild(CHANNEL_ID)  # This should be your guild ID, not channel ID.
+    if game_running:
+        for member_id in employee_data.keys():
+            target_id = str(random.randint(100000, 999999))
+            votes[member_id] = target_id
+            vote_times[member_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            await bot.get_user(member_id).send(f"Automated vote registered for ID: {target_id}")
+        await bot.get_channel(CHANNEL_ID).send("Automated voting completed.")
 
-    if guild is None:
-        print("Guild not found.")
-        return
+async def automated_nmap_scans():
+    if game_running:
+        await bot.get_channel(CHANNEL_ID).send("/nmap 404.4.4.4")
+        await bot.get_channel(CHANNEL_ID).send("/nmap 192.168.1.1")
 
-    # Get the sudo role
-    sudo_role = discord.utils.get(guild.roles, name=SUDO_ROLE_NAME)
+async def generate_summary_report():
+    global votes, vote_times
+    summary_report = "Test Mode Summary Report:\n\n"
     
-    if sudo_role is None:
-        print("Sudo role not found.")
-        return
-
-    # Construct the statistics message
-    statistics_message = "Voting Statistics:\n\n"
-    
+    summary_report += "Votes:\n"
     for voter_id, voted_id in votes.items():
         vote_time = vote_times.get(voter_id, "Unknown time")
-        voter_member = guild.get_member(voter_id)
-        voter_name = voter_member.display_name if voter_member else "Unknown voter"
-        statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
+        summary_report += f"Voter ID: {voter_id} voted for {voted_id} at {vote_time}\n"
     
-    hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
-    statistics_message += "\nMembers who voted for the hacker:\n"
-    for voter in hacker_voters:
-        voter_member = guild.get_member(voter)
-        voter_name = voter_member.display_name if voter_member else "Unknown voter"
-        statistics_message += f"{voter_name} (ID: {voter})\n"
+    summary_report += "\nGame State:\n"
+    summary_report += f"Game Running: {game_running}\n"
+    summary_report += f"Round Number: {round_number}\n"
+    summary_report += f"Hacker ID: {hacker_id}\n"
+    
+    logging.info(summary_report)
+    await bot.get_channel(CHANNEL_ID).send(f"```{summary_report}```")
 
-    # Send the message to all members with the sudo role
-    for member in guild.members:
-        if sudo_role in member.roles:
-            try:
-                await member.send(statistics_message)
-            except discord.Forbidden:
-                print(f"Could not send message to {member.display_name}")
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Ensure to call this function after the votes are tallied at the end of each round
+def log_action(action):
+    logging.debug(action)
 
+@bot.event
+async def on_command(ctx):
+    log_action(f"Command executed: {ctx.command} by {ctx.author}")
 
 @tasks.loop(seconds=1)
 async def round_timer():
@@ -339,6 +340,5 @@ if bot_token:
     bot.run(bot_token)
 else:
     print("Error: Bot token not found. Please set the NULLBOT_TOKEN environment variable.")
-
 
 
