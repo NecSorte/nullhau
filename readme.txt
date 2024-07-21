@@ -16,8 +16,7 @@ known issues:
 
     fix test mode. Allow all the functions to still work, but just shorter. make null make annoucments on the timeline of events. 
     
-    add spam protection. provide spam warning 1 message every 5 seconds. if user breaks the 1 in 5 second rule, kick from discord. as long as its not sudo. And only in its in the DMs. Maybe reserach discord side security. 
-
+    add spam protection. I am concerned with users spamming the bot to ddos the bot. Give me ideas on how to protect it
     /say is broken. line 91 error. 
 
 

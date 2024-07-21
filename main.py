@@ -2,17 +2,15 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 import random
-import logging
-import asyncio
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+import asyncio  # Import asyncio module
+from collections import defaultdict
 from responses import NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES, SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES, TERMINATION_RESPONSES, WINDOWS_RESPONSES
 
 # Load environment variables from .env file
 load_dotenv()
-
-TEST_MODE = os.getenv('TEST_MODE', 'off').lower() == 'on'
 
 # Setup intents
 intents = discord.Intents.default()
@@ -32,7 +30,7 @@ ROLES = [
     "Blue Team", "HR", "Janitor"
 ]
 
-FUN_FACTS = [
+ROLE_FACTS = [
     "Loves hiking on weekends.", "Is a coffee aficionado.",
     "Has a pet snake named 'Slytherin'.", "Once won a hotdog eating contest.",
     "Plays the violin in a local orchestra.", "Collects vintage comic books.",
@@ -46,6 +44,18 @@ NAMES = [
     "Jane", "Taylor", "Casey", "Sam", "Pat",
     "Jason", "Andrew", "Harper", "Asher", "James"
 ]
+
+# Track last command timestamps for spam protection
+COMMAND_COOLDOWN = 5  # seconds
+user_last_command_time = defaultdict(lambda: datetime.min)
+
+async def is_on_cooldown(user_id):
+    now = datetime.now()
+    last_command_time = user_last_command_time[user_id]
+    if (now - last_command_time).seconds < COMMAND_COOLDOWN:
+        return True
+    user_last_command_time[user_id] = now
+    return False
 
 def get_random_no_response():
     return random.choice(NO_RESPONSES)
@@ -83,6 +93,7 @@ hacker_id = None
 round_number = 0
 employee_data = {}
 test_mode = False
+voted_users = set()
 
 @bot.event
 async def on_ready():
@@ -90,7 +101,7 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
+    if isinstance(error, commands.errors.CommandNotFound):
         await ctx.author.send(get_random_invalid_command_response())
 
 @bot.command(name='badge')
@@ -103,13 +114,13 @@ async def badge(ctx):
     employee_id = generate_employee_id(hacker_id)
     name = random.choice(NAMES)
     role = random.choice(ROLES)
-    fun_fact = random.choice(FUN_FACTS)
+    role_fact = random.choice(ROLE_FACTS)
 
     employee_data[ctx.author.id] = {
         "employee_id": employee_id,
         "name": name,
         "role": role,
-        "fun_fact": fun_fact,
+        "role_fact": role_fact,
     }
 
     welcome_message = get_random_welcome_response()
@@ -120,23 +131,33 @@ async def badge(ctx):
         f"Employee ID: {employee_id}\n"
         f"Name: {name}\n"
         f"Role: {role}\n"
-        f"Fun Fact: {fun_fact}\n"
+        f"Role Fact: {role_fact}\n"
     )
 
 @bot.command(name='vote')
 async def vote(ctx, id_number: str):
-    global votes, vote_times
-    if game_running:
-        if not id_number.isdigit() or len(id_number) != 6:
-            await ctx.author.send("Invalid employee ID format. Please provide a 6-digit ID.")
-            return
-
-        votes[ctx.author.id] = id_number
-        vote_times[ctx.author.id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        termination_response = random.choice(TERMINATION_RESPONSES)
-        await ctx.author.send(f"{termination_response}\nVote registered for ID: {id_number}")
-    else:
+    global votes, vote_times, voted_users
+    if not game_running:
         await ctx.author.send("Voting is not currently active.")
+        return
+    
+    if ctx.author.id not in employee_data:
+        await ctx.author.send("You need to have an employee badge to vote. Use /badge to get one.")
+        return
+
+    if ctx.author.id in voted_users:
+        await ctx.author.send("You have already voted this round.")
+        return
+    
+    if not id_number.isdigit() or len(id_number) != 6:
+        await ctx.author.send("Invalid employee ID format. Please provide a 6-digit ID.")
+        return
+
+    votes[ctx.author.id] = id_number
+    vote_times[ctx.author.id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    voted_users.add(ctx.author.id)
+    termination_response = random.choice(TERMINATION_RESPONSES)
+    await ctx.author.send(f"{termination_response}\nVote registered for ID: {id_number}")
 
 @bot.command(name='nmap')
 async def nmap(ctx, target: str):
@@ -145,6 +166,7 @@ async def nmap(ctx, target: str):
         success_response = random.choice(SUCCESS_RESPONSES)
         windows_response = random.choice(WINDOWS_RESPONSES)
         nmap_response = """
+
 ```
 Host script results:
 | smb-vuln-ms17-010:
@@ -175,20 +197,20 @@ Host script results:
 
 @bot.command(name='null')
 async def null(ctx, action: str):
-    global game_running, round_end_time, hacker_id, round_number, test_mode
+    global game_running, round_end_time, hacker_id, round_number, test_mode, voted_users
     if action == 'start':
         if not game_running:
             await ctx.author.send("I'm getting in your DMs!")
             game_running = True
             round_number = 1
-            if TEST_MODE:
+            if test_mode:
                 round_end_time = datetime.now() + timedelta(minutes=1)
-                await ctx.author.send("Test mode activated. Game rounds will last 1 minute.")
+                await automated_voting()
+                await automated_nmap_scans()
             else:
                 round_end_time = datetime.now() + timedelta(hours=1)
-                await ctx.author.send("Game rounds will last 1 hour.")
             hacker_id = random.randint(100000, 999999)
-            await ctx.author.send(f"Game started! Hacker ID: {hacker_id}.")
+            await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
             await ctx.author.send("Null is watching... Let the games begin!")
             round_timer.start()
         else:
@@ -203,13 +225,13 @@ async def null(ctx, action: str):
 
 @bot.command(name='testmode')
 async def testmode(ctx, action: str):
-    global TEST_MODE
+    global test_mode
     if action == 'on':
-        TEST_MODE = True
-        await ctx.author.send("Test mode activated. All durations will be shortened.")
+        test_mode = True
+        await ctx.author.send("Test mode activated. Round duration is now 1 minute.")
     elif action == 'off':
-        TEST_MODE = False
-        await ctx.author.send("Test mode deactivated. Durations will return to normal.")
+        test_mode = False
+        await ctx.author.send("Test mode deactivated. Round duration is now 1 hour.")
     else:
         await ctx.author.send("Invalid action. Use `/testmode on` to activate or `/testmode off` to deactivate.")
 
@@ -247,55 +269,55 @@ async def commands(ctx):
     )
     await ctx.author.send(help_text)
 
-async def automated_voting():
+async def send_voting_statistics():
     global votes, vote_times
-    if game_running:
-        for member_id in employee_data.keys():
-            target_id = str(random.randint(100000, 999999))
-            votes[member_id] = target_id
-            vote_times[member_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            await bot.get_user(member_id).send(f"Automated vote registered for ID: {target_id}")
-        await bot.get_channel(CHANNEL_ID).send("Automated voting completed.")
-
-async def automated_nmap_scans():
-    if game_running:
-        await bot.get_channel(CHANNEL_ID).send("/nmap 404.4.4.4")
-        await bot.get_channel(CHANNEL_ID).send("/nmap 192.168.1.1")
-
-async def generate_summary_report():
-    global votes, vote_times
-    summary_report = "Test Mode Summary Report:\n\n"
     
-    summary_report += "Votes:\n"
+    # Get the guild (server) object. Replace CHANNEL_ID with your actual guild ID if necessary.
+    guild = bot.get_guild(CHANNEL_ID)  # This should be your guild ID, not channel ID.
+
+    if guild is None:
+        print("Guild not found.")
+        return
+
+    # Get the sudo role
+    sudo_role = discord.utils.get(guild.roles, name=SUDO_ROLE_NAME)
+    
+    if sudo_role is None:
+        print("Sudo role not found.")
+        return
+
+    # Construct the statistics message
+    statistics_message = "Voting Statistics:\n\n"
+    
     for voter_id, voted_id in votes.items():
         vote_time = vote_times.get(voter_id, "Unknown time")
-        summary_report += f"Voter ID: {voter_id} voted for {voted_id} at {vote_time}\n"
+        voter_member = guild.get_member(voter_id)
+        voter_name = voter_member.display_name if voter_member else "Unknown voter"
+        statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
     
-    summary_report += "\nGame State:\n"
-    summary_report += f"Game Running: {game_running}\n"
-    summary_report += f"Round Number: {round_number}\n"
-    summary_report += f"Hacker ID: {hacker_id}\n"
-    
-    logging.info(summary_report)
-    await bot.get_channel(CHANNEL_ID).send(f"```{summary_report}```")
+    hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
+    statistics_message += "\nMembers who voted for the hacker:\n"
+    for voter in hacker_voters:
+        voter_member = guild.get_member(voter)
+        voter_name = voter_member.display_name if voter_member else "Unknown voter"
+        statistics_message += f"{voter_name} (ID: {voter})\n"
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def log_action(action):
-    logging.debug(action)
-
-@bot.event
-async def on_command(ctx):
-    log_action(f"Command executed: {ctx.command} by {ctx.author}")
+    # Send the message to all members with the sudo role
+    for member in guild.members:
+        if sudo_role in member.roles:
+            try:
+                await member.send(statistics_message)
+            except discord.Forbidden:
+                print(f"Could not send message to {member.display_name}")
 
 @tasks.loop(seconds=1)
 async def round_timer():
-    global game_running, round_end_time, votes, hacker_id, round_number, test_mode
+    global game_running, round_end_time, votes, hacker_id, round_number, test_mode, voted_users
     if game_running:
         now = datetime.now()
         if now >= round_end_time:
             if votes:
-                most_voted = max(set(votes.values()), key=votes.values().count)
+                most_voted = max(set(votes.values()), key=list(votes.values()).count)
                 await bot.get_channel(CHANNEL_ID).send(f"Employee {most_voted} has been terminated.")
                 if most_voted == hacker_id:
                     await bot.get_channel(CHANNEL_ID).send("The hacker has been found! Game over.")
@@ -313,6 +335,7 @@ async def round_timer():
                 round_end_time = now + timedelta(hours=1)
             votes = {}
             vote_times = {}
+            voted_users = set()
             await bot.get_channel(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
         elif (round_end_time - now).seconds == 10 and test_mode:
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 seconds!")
@@ -328,6 +351,10 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    if await is_on_cooldown(message.author.id):
+        await message.channel.send("You are sending commands too quickly. Please wait a few seconds.")
+        return
+
     if message.content.lower() == "yes":
         await message.author.send(get_random_yes_response())
     elif message.content.lower() == "no":
@@ -335,10 +362,24 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+async def automated_voting():
+    while game_running and test_mode:
+        # Simulate a random user casting a vote
+        random_user_id = random.choice(list(employee_data.keys()))
+        random_vote = random.choice(list(employee_data.values()))['employee_id']
+        votes[random_user_id] = random_vote
+        vote_times[random_user_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        await asyncio.sleep(10)  # Adjust the interval for automated voting as needed
+
+async def automated_nmap_scans():
+    while game_running and test_mode:
+        # Simulate a random nmap scan
+        random_user_id = random.choice(list(employee_data.keys()))
+        await nmap(bot.get_context(random_user_id), target="404.4.4.4")
+        await asyncio.sleep(15)  # Adjust the interval for automated nmap scans as needed
+
 bot_token = os.getenv('NULLBOT_TOKEN')
 if bot_token:
     bot.run(bot_token)
 else:
     print("Error: Bot token not found. Please set the NULLBOT_TOKEN environment variable.")
-
-
