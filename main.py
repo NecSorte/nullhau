@@ -59,6 +59,7 @@ votes = {}
 vote_times = {}
 hacker_id = None
 round_number = 0
+total_rounds = 0
 employee_data = {}
 test_mode = False
 voted_users = set()
@@ -82,37 +83,60 @@ async def is_on_cooldown(user_id):
     return False
 
 async def send_voting_statistics():
-    guild = bot.get_guild(CHANNEL_ID)
-    if not guild:
-        print("Guild not found.")
-        return
+    for guild in bot.guilds:
+        sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+        if not sudo_role:
+            print(f"Sudo role not found in guild: {guild.name}")
+            continue
 
-    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
-    if not sudo_role:
-        print("Sudo role not found.")
-        return
+        statistics_message = "Voting Statistics:\n\n"
+        for voter_id, voted_id in votes.items():
+            vote_time = vote_times.get(voter_id, "Unknown time")
+            voter_member = guild.get_member(voter_id)
+            voter_name = voter_member.display_name if voter_member else "Unknown voter"
+            statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
 
-    statistics_message = "Voting Statistics:\n\n"
-    for voter_id, voted_id in votes.items():
-        vote_time = vote_times.get(voter_id, "Unknown time")
-        voter_member = guild.get_member(voter_id)
-        voter_name = voter_member.display_name if voter_member else "Unknown voter"
-        statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
+        hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
+        statistics_message += "\nMembers who voted for the hacker:\n"
+        for voter in hacker_voters:
+            voter_member = guild.get_member(voter)
+            voter_name = voter_member.display_name if voter_member else "Unknown voter"
+            statistics_message += f"{voter_name} (ID: {voter})\n"
 
-    hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
-    statistics_message += "\nMembers who voted for the hacker:\n"
-    for voter in hacker_voters:
-        voter_member = guild.get_member(voter)
-        voter_name = voter_member.display_name if voter_member else "Unknown voter"
-        statistics_message += f"{voter_name} (ID: {voter})\n"
+        for member in guild.members:
+            if sudo_role in member.roles and member != bot.user:
+                try:
+                    await member.send(statistics_message)
+                except discord.Forbidden:
+                    print(f"Could not send message to {member.display_name}")
 
-    for member in guild.members:
-        if sudo_role in member.roles:
-            try:
-                await member.send(statistics_message)
-            except discord.Forbidden:
-                print(f"Could not send message to {member.display_name}")
+async def notify_sudo_members(message):
+    for guild in bot.guilds:
+        sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+        if not sudo_role:
+            print(f"Sudo role not found in guild: {guild.name}")
+            continue
 
+        for member in guild.members:
+            if sudo_role in member.roles and member != bot.user:
+                try:
+                    await member.send(message)
+                except discord.Forbidden:
+                    print(f"Could not send message to {member.display_name}")
+
+async def notify_sudo_members(message):
+    for guild in bot.guilds:
+        sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+        if not sudo_role:
+            print(f"Sudo role not found in guild: {guild.name}")
+            continue
+
+        for member in guild.members:
+            if sudo_role in member.roles:
+                try:
+                    await member.send(message)
+                except discord.Forbidden:
+                    print(f"Could not send message to {member.display_name}")
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
@@ -213,7 +237,7 @@ Host script results:
 
 @bot.command(name='null')
 async def null(ctx, action: str):
-    global game_running, round_end_time, hacker_id, round_number, test_mode, voted_users, CHANNEL_ID
+    global game_running, round_end_time, hacker_id, round_number, total_rounds, test_mode, voted_users, CHANNEL_ID
     guild = ctx.guild
     sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
 
@@ -235,6 +259,10 @@ async def null(ctx, action: str):
                 channel_id_msg = await bot.wait_for('message', check=check)
                 CHANNEL_ID = int(channel_id_msg.content)
 
+                await ctx.author.send("How many rounds?")
+                total_rounds_msg = await bot.wait_for('message', check=check)
+                total_rounds = int(total_rounds_msg.content)
+
                 await bot.get_channel(CHANNEL_ID).send("Null is watching... Let the games begin!")
 
                 await testmode(ctx, test_mode_state)
@@ -243,13 +271,12 @@ async def null(ctx, action: str):
                 game_running = True
                 round_number = 1
                 round_end_time = datetime.now() + timedelta(minutes=1) if test_mode else datetime.now() + timedelta(hours=1)
-                await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
+                await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: {total_rounds} (1 minute per round in test mode, 1 hour per round otherwise).")
                 if not round_timer.is_running():
                     round_timer.start()
                 if test_mode:
-                    print("Starting automated voting and nmap scans.")
+                    print("Starting automated voting.")
                     asyncio.create_task(automated_voting())
-                    asyncio.create_task(automated_nmap_scans())
             else:
                 await ctx.author.send("The game is already running.")
         elif action == 'stop':
@@ -308,7 +335,7 @@ async def commands(ctx):
 
 @tasks.loop(seconds=1)
 async def round_timer():
-    global game_running, round_end_time, votes, hacker_id, round_number, test_mode, voted_users
+    global game_running, round_end_time, votes, hacker_id, round_number, total_rounds, test_mode, voted_users
     if game_running:
         now = datetime.now()
         time_remaining = (round_end_time - now).seconds
@@ -322,21 +349,30 @@ async def round_timer():
                     game_running = False
                     round_timer.stop()
                     await send_voting_statistics()
+                    await notify_sudo_members("Game over. The hacker has been found!")
                     return
             else:
                 await bot.get_channel(CHANNEL_ID).send("No votes received. No one has been terminated.")
 
             round_number += 1
+            await send_voting_statistics()
+            if round_number > total_rounds:
+                await bot.get_channel(CHANNEL_ID).send("All rounds completed. Game over.")
+                game_running = False
+                round_timer.stop()
+                await notify_sudo_members("Game over. All rounds completed.")
+                return
+
             round_end_time = datetime.now() + timedelta(minutes=1) if test_mode else datetime.now() + timedelta(hours=1)
             votes = {}
             vote_times = {}
             voted_users = set()
-            await bot.get_channel(CHANNEL_ID).send("Next round started. Find the hacker!")
+            await bot.get_channel(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
         elif test_mode and time_remaining == 45:
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 45 seconds!")
         elif not test_mode and time_remaining == 600:
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 minutes!")
-
+            
 @round_timer.before_loop
 async def before_round_timer():
     await bot.wait_until_ready()
