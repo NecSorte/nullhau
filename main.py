@@ -27,6 +27,7 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 # Define initial channel ID
 CHANNEL_ID = 1252438027880366191
 SUDO_ROLE_NAME = "sudo"
+AUTOMATED_VOTER_ID = "000001"
 
 ROLES = [
     "Windows Admin", "Linux Wizard", "Pen Tester",
@@ -124,19 +125,6 @@ async def notify_sudo_members(message):
                 except discord.Forbidden:
                     print(f"Could not send message to {member.display_name}")
 
-async def notify_sudo_members(message):
-    for guild in bot.guilds:
-        sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
-        if not sudo_role:
-            print(f"Sudo role not found in guild: {guild.name}")
-            continue
-
-        for member in guild.members:
-            if sudo_role in member.roles:
-                try:
-                    await member.send(message)
-                except discord.Forbidden:
-                    print(f"Could not send message to {member.display_name}")
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
@@ -197,6 +185,7 @@ async def vote(ctx, id_number: str):
     voted_users.add(ctx.author.id)
     termination_response = get_random_response(TERMINATION_RESPONSES)
     await ctx.author.send(f"{termination_response}\nVote registered for ID: {id_number}")
+
 
 
 @bot.command(name='nmap')
@@ -372,7 +361,7 @@ async def round_timer():
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 45 seconds!")
         elif not test_mode and time_remaining == 600:
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 minutes!")
-            
+
 @round_timer.before_loop
 async def before_round_timer():
     await bot.wait_until_ready()
@@ -395,13 +384,19 @@ async def on_message(message):
 
 async def automated_voting():
     print("Automated voting started.")
+    previous_votes = set()
     while game_running and test_mode:
         if employee_data:
-            random_user_id = random.choice(list(employee_data.keys()))
-            random_vote = random.choice(list(employee_data.values()))['employee_id']
-            votes[random_user_id] = random_vote
-            vote_times[random_user_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"Automated vote cast: {random_user_id} voted for {random_vote}")
+            available_votes = set([employee['employee_id'] for employee in employee_data.values()]) - previous_votes
+            if not available_votes:
+                available_votes = set([employee['employee_id'] for employee in employee_data.values()])
+                previous_votes = set()
+
+            random_vote = random.choice(list(available_votes))
+            votes[AUTOMATED_VOTER_ID] = random_vote
+            vote_times[AUTOMATED_VOTER_ID] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            previous_votes.add(random_vote)
+            print(f"Automated vote cast: Automated bot voted for {random_vote}")
         await asyncio.sleep(10)
 
 bot_token = os.getenv('NULLBOT_TOKEN')
