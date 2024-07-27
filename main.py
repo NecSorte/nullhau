@@ -6,7 +6,11 @@ import os
 from dotenv import load_dotenv
 import asyncio
 from collections import defaultdict
-from responses import NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES, SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES, TERMINATION_RESPONSES, WINDOWS_RESPONSES
+from responses import (
+    NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES,
+    SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES,
+    TERMINATION_RESPONSES, WINDOWS_RESPONSES
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,13 +18,13 @@ load_dotenv()
 # Setup intents
 intents = discord.Intents.default()
 intents.message_content = True
-intents.presences = True  # Enable if you need presence updates
-intents.members = True    # Enable if you need member updates
+intents.presences = True
+intents.members = True
 
 # Bot setup
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-# Define the channel ID for #DEFCON32
+# Define initial channel ID
 CHANNEL_ID = 1252438027880366191
 SUDO_ROLE_NAME = "sudo"
 
@@ -52,7 +56,7 @@ user_last_command_time = defaultdict(lambda: datetime.min)
 game_running = False
 round_end_time = None
 votes = {}
-vote_times = {}  # Track vote times
+vote_times = {}
 hacker_id = None
 round_number = 0
 employee_data = {}
@@ -78,28 +82,23 @@ async def is_on_cooldown(user_id):
     return False
 
 async def send_voting_statistics():
-    global votes, vote_times
-
     guild = bot.get_guild(CHANNEL_ID)
-
     if not guild:
         print("Guild not found.")
         return
 
     sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
-
     if not sudo_role:
         print("Sudo role not found.")
         return
 
     statistics_message = "Voting Statistics:\n\n"
-    
     for voter_id, voted_id in votes.items():
         vote_time = vote_times.get(voter_id, "Unknown time")
         voter_member = guild.get_member(voter_id)
         voter_name = voter_member.display_name if voter_member else "Unknown voter"
         statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
-    
+
     hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
     statistics_message += "\nMembers who voted for the hacker:\n"
     for voter in hacker_voters:
@@ -114,7 +113,6 @@ async def send_voting_statistics():
             except discord.Forbidden:
                 print(f"Could not send message to {member.display_name}")
 
-# Bot events and commands
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
@@ -126,7 +124,6 @@ async def on_command_error(ctx, error):
 
 @bot.command(name='badge')
 async def badge(ctx):
-    global hacker_id, employee_data
     if ctx.author.id in employee_data:
         await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
         return
@@ -144,7 +141,6 @@ async def badge(ctx):
     }
 
     welcome_message = get_random_response(WELCOME_RESPONSES)
-    
     await ctx.author.send(
         f"{welcome_message}\n"
         f"Badge created!\n"
@@ -156,11 +152,10 @@ async def badge(ctx):
 
 @bot.command(name='vote')
 async def vote(ctx, id_number: str):
-    global votes, vote_times, voted_users
     if not game_running:
         await ctx.author.send("Voting is not currently active.")
         return
-    
+
     if ctx.author.id not in employee_data:
         await ctx.author.send("You need to have an employee badge to vote. Use /badge to get one.")
         return
@@ -168,7 +163,7 @@ async def vote(ctx, id_number: str):
     if ctx.author.id in voted_users:
         await ctx.author.send("You have already voted this round.")
         return
-    
+
     if not id_number.isdigit() or len(id_number) != 6:
         await ctx.author.send("Invalid employee ID format. Please provide a 6-digit ID.")
         return
@@ -239,7 +234,7 @@ async def null(ctx, action: str):
                 await ctx.author.send("What's the channel ID for Null to post in?")
                 channel_id_msg = await bot.wait_for('message', check=check)
                 CHANNEL_ID = int(channel_id_msg.content)
-                
+
                 await bot.get_channel(CHANNEL_ID).send("Null is watching... Let the games begin!")
 
                 await testmode(ctx, test_mode_state)
@@ -251,6 +246,10 @@ async def null(ctx, action: str):
                 await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
                 if not round_timer.is_running():
                     round_timer.start()
+                if test_mode:
+                    print("Starting automated voting and nmap scans.")
+                    asyncio.create_task(automated_voting())
+                    asyncio.create_task(automated_nmap_scans())
             else:
                 await ctx.author.send("The game is already running.")
         elif action == 'stop':
@@ -313,7 +312,7 @@ async def round_timer():
     if game_running:
         now = datetime.now()
         time_remaining = (round_end_time - now).seconds
-        
+
         if now >= round_end_time:
             if votes:
                 most_voted = max(set(votes.values()), key=list(votes.values()).count)
@@ -326,13 +325,13 @@ async def round_timer():
                     return
             else:
                 await bot.get_channel(CHANNEL_ID).send("No votes received. No one has been terminated.")
-            
+
             round_number += 1
             round_end_time = datetime.now() + timedelta(minutes=1) if test_mode else datetime.now() + timedelta(hours=1)
             votes = {}
             vote_times = {}
             voted_users = set()
-            await bot.get_channel(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
+            await bot.get_channel(CHANNEL_ID).send("Next round started. Find the hacker!")
         elif test_mode and time_remaining == 45:
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 45 seconds!")
         elif not test_mode and time_remaining == 600:
@@ -359,20 +358,15 @@ async def on_message(message):
     await bot.process_commands(message)
 
 async def automated_voting():
+    print("Automated voting started.")
     while game_running and test_mode:
         if employee_data:
             random_user_id = random.choice(list(employee_data.keys()))
             random_vote = random.choice(list(employee_data.values()))['employee_id']
             votes[random_user_id] = random_vote
             vote_times[random_user_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"Automated vote cast: {random_user_id} voted for {random_vote}")
         await asyncio.sleep(10)
-
-async def automated_nmap_scans():
-    while game_running and test_mode:
-        if employee_data:
-            random_user_id = random.choice(list(employee_data.keys()))
-            await nmap(bot.get_context(random_user_id), target="404.4.4.4")
-        await asyncio.sleep(15)
 
 bot_token = os.getenv('NULLBOT_TOKEN')
 if bot_token:
