@@ -1,11 +1,10 @@
 import discord
 from discord.ext import commands, tasks
-from discord import app_commands
 import random
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
-import asyncio  # Import asyncio module
+import asyncio
 from collections import defaultdict
 from responses import NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES, SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES, TERMINATION_RESPONSES, WINDOWS_RESPONSES
 
@@ -23,7 +22,7 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 
 # Define the channel ID for #DEFCON32
 CHANNEL_ID = 1252438027880366191
-SUDO_ROLE_NAME = "sudo"  # Define the sudo role name
+SUDO_ROLE_NAME = "sudo"
 
 ROLES = [
     "Windows Admin", "Linux Wizard", "Pen Tester",
@@ -49,41 +48,6 @@ NAMES = [
 COMMAND_COOLDOWN = 5  # seconds
 user_last_command_time = defaultdict(lambda: datetime.min)
 
-async def is_on_cooldown(user_id):
-    now = datetime.now()
-    last_command_time = user_last_command_time[user_id]
-    if (now - last_command_time).seconds < COMMAND_COOLDOWN:
-        return True
-    user_last_command_time[user_id] = now
-    return False
-
-def get_random_no_response():
-    return random.choice(NO_RESPONSES)
-
-def get_random_yes_response():
-    return random.choice(YES_RESPONSES)
-
-def get_random_welcome_response():
-    return random.choice(WELCOME_RESPONSES)
-
-def get_random_success_response():
-    return random.choice(SUCCESS_RESPONSES)
-
-def get_random_failure_response():
-    return random.choice(FAILURE_RESPONSES)
-
-def get_random_invalid_command_response():
-    return random.choice(INVALID_COMMAND_RESPONSES)
-
-def get_random_windows_response():
-    return random.choice(WINDOWS_RESPONSES)
-
-def generate_employee_id(hacker_id):
-    while True:
-        employee_id = random.randint(100000, 999999)
-        if employee_id != hacker_id:
-            return employee_id
-
 # Game state
 game_running = False
 round_end_time = None
@@ -95,20 +59,76 @@ employee_data = {}
 test_mode = False
 voted_users = set()
 
+# Helper functions
+def get_random_response(response_list):
+    return random.choice(response_list)
+
+def generate_employee_id(hacker_id):
+    while True:
+        employee_id = random.randint(100000, 999999)
+        if employee_id != hacker_id:
+            return employee_id
+
+async def is_on_cooldown(user_id):
+    now = datetime.now()
+    last_command_time = user_last_command_time[user_id]
+    if (now - last_command_time).seconds < COMMAND_COOLDOWN:
+        return True
+    user_last_command_time[user_id] = now
+    return False
+
+async def send_voting_statistics():
+    global votes, vote_times
+
+    guild = bot.get_guild(CHANNEL_ID)
+
+    if not guild:
+        print("Guild not found.")
+        return
+
+    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+
+    if not sudo_role:
+        print("Sudo role not found.")
+        return
+
+    statistics_message = "Voting Statistics:\n\n"
+    
+    for voter_id, voted_id in votes.items():
+        vote_time = vote_times.get(voter_id, "Unknown time")
+        voter_member = guild.get_member(voter_id)
+        voter_name = voter_member.display_name if voter_member else "Unknown voter"
+        statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
+    
+    hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
+    statistics_message += "\nMembers who voted for the hacker:\n"
+    for voter in hacker_voters:
+        voter_member = guild.get_member(voter)
+        voter_name = voter_member.display_name if voter_member else "Unknown voter"
+        statistics_message += f"{voter_name} (ID: {voter})\n"
+
+    for member in guild.members:
+        if sudo_role in member.roles:
+            try:
+                await member.send(statistics_message)
+            except discord.Forbidden:
+                print(f"Could not send message to {member.display_name}")
+
+# Bot events and commands
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.errors.CommandNotFound):
-        await ctx.author.send(get_random_invalid_command_response())
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
 
 @bot.command(name='badge')
 async def badge(ctx):
     global hacker_id, employee_data
     if ctx.author.id in employee_data:
-        await ctx.author.send(get_random_invalid_command_response())
+        await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
         return
 
     employee_id = generate_employee_id(hacker_id)
@@ -123,7 +143,7 @@ async def badge(ctx):
         "role_fact": role_fact,
     }
 
-    welcome_message = get_random_welcome_response()
+    welcome_message = get_random_response(WELCOME_RESPONSES)
     
     await ctx.author.send(
         f"{welcome_message}\n"
@@ -156,8 +176,9 @@ async def vote(ctx, id_number: str):
     votes[ctx.author.id] = id_number
     vote_times[ctx.author.id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     voted_users.add(ctx.author.id)
-    termination_response = random.choice(TERMINATION_RESPONSES)
+    termination_response = get_random_response(TERMINATION_RESPONSES)
     await ctx.author.send(f"{termination_response}\nVote registered for ID: {id_number}")
+
 
 @bot.command(name='nmap')
 async def nmap(ctx, target: str):
@@ -194,61 +215,78 @@ Host script results:
         # Send a random failure response if the input is not valid
         failure_response = random.choice(FAILURE_RESPONSES)
         await ctx.author.send(failure_response)
-
 @bot.command(name='null')
 async def null(ctx, action: str):
     global game_running, round_end_time, hacker_id, round_number, test_mode, voted_users
-    if action == 'start':
-        if not game_running:
-            await ctx.author.send("I'm getting in your DMs!")
-            game_running = True
-            round_number = 1
-            if test_mode:
-                round_end_time = datetime.now() + timedelta(minutes=1)
-                await automated_voting()
-                await automated_nmap_scans()
+    guild = ctx.guild
+    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+
+    if sudo_role and sudo_role in ctx.author.roles:
+        if action == 'start':
+            if not game_running:
+                def check(m):
+                    return m.author == ctx.author and isinstance(m.channel, discord.DMChannel)
+
+                await ctx.author.send("Would you like to activate test mode? (on/off)")
+                test_mode_msg = await bot.wait_for('message', check=check)
+                test_mode_state = test_mode_msg.content.lower()
+
+                await ctx.author.send("What's the hacker ID?")
+                hacker_id_msg = await bot.wait_for('message', check=check)
+                hacker_id_value = int(hacker_id_msg.content)
+
+                await ctx.author.send("What's the channel ID for Null to post in?")
+                channel_id_msg = await bot.wait_for('message', check=check)
+                channel_id = int(channel_id_msg.content)
+                
+                await bot.get_channel(channel_id).send("Null is watching... Let the games begin!")
+
+                await testmode(ctx, test_mode_state)
+                await set_hacker_id(ctx, hacker_id_value)
+
+                game_running = True
+                round_number = 1
+                round_end_time = datetime.now() + timedelta(minutes=1) if test_mode else datetime.now() + timedelta(hours=1)
+                if test_mode:
+                    await automated_voting()
+                    await automated_nmap_scans()
+                await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
+                round_timer.start()
             else:
-                round_end_time = datetime.now() + timedelta(hours=1)
-            hacker_id = random.randint(100000, 999999)
-            await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
-            await ctx.author.send("Null is watching... Let the games begin!")
-            round_timer.start()
-        else:
-            await ctx.author.send("The game is already running.")
-    elif action == 'stop':
-        if game_running:
-            game_running = False
-            round_timer.stop()
-            await ctx.author.send("Game stopped.")
-        else:
-            await ctx.author.send("No game is currently running.")
+                await ctx.author.send("The game is already running.")
+        elif action == 'stop':
+            if game_running:
+                game_running = False
+                round_timer.stop()
+                await ctx.author.send("Game stopped.")
+            else:
+                await ctx.author.send("No game is currently running.")
+    else:
+        await ctx.author.send("You do not have permission to use this command.")
 
 @bot.command(name='testmode')
 async def testmode(ctx, action: str):
     global test_mode
-    if action == 'on':
-        test_mode = True
-        await ctx.author.send("Test mode activated. Round duration is now 1 minute.")
-    elif action == 'off':
-        test_mode = False
-        await ctx.author.send("Test mode deactivated. Round duration is now 1 hour.")
+    if action in ['on', 'off']:
+        test_mode = (action == 'on')
+        await ctx.author.send(f"Test mode {'activated' if test_mode else 'deactivated'}. Round duration is now {'1 minute' if test_mode else '1 hour'}.")
     else:
         await ctx.author.send("Invalid action. Use `/testmode on` to activate or `/testmode off` to deactivate.")
 
+@bot.command(name='set_hacker_id')
+async def set_hacker_id(ctx, hacker_id_value: int):
+    global hacker_id
+    hacker_id = hacker_id_value
+    await ctx.author.send(f"Hacker ID set to: {hacker_id}")
+
 @bot.command(name='say')
 async def say(ctx, *, text: str):
-    # Check if the author is a sudo member
     guild = ctx.guild
-    sudo_role = discord.utils.get(guild.roles, name=SUDO_ROLE_NAME)
+    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
     if sudo_role in ctx.author.roles:
-        # Sanitize the text to prevent injection attacks
         sanitized_text = discord.utils.escape_markdown(text)
-        
-        # Get the channel object
         channel = bot.get_channel(CHANNEL_ID)
-        
-        if channel is not None:
-            # Send the sanitized message to the specified channel
+        if channel:
             await channel.send(sanitized_text)
         else:
             await ctx.author.send("I couldn't find the channel to send the message to.")
@@ -264,51 +302,11 @@ async def commands(ctx):
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
         "/null <start|stop> - Start or stop the hacker game.\n"
         "/testmode <on|off> - Activate or deactivate test mode.\n"
+        "/set_hacker_id <id> - Set the hacker ID.\n"
         "/say <text> - Make the bot say something.\n"
         "/commands - Show this help message."
     )
     await ctx.author.send(help_text)
-
-async def send_voting_statistics():
-    global votes, vote_times
-    
-    # Get the guild (server) object. Replace CHANNEL_ID with your actual guild ID if necessary.
-    guild = bot.get_guild(CHANNEL_ID)  # This should be your guild ID, not channel ID.
-
-    if guild is None:
-        print("Guild not found.")
-        return
-
-    # Get the sudo role
-    sudo_role = discord.utils.get(guild.roles, name=SUDO_ROLE_NAME)
-    
-    if sudo_role is None:
-        print("Sudo role not found.")
-        return
-
-    # Construct the statistics message
-    statistics_message = "Voting Statistics:\n\n"
-    
-    for voter_id, voted_id in votes.items():
-        vote_time = vote_times.get(voter_id, "Unknown time")
-        voter_member = guild.get_member(voter_id)
-        voter_name = voter_member.display_name if voter_member else "Unknown voter"
-        statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
-    
-    hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
-    statistics_message += "\nMembers who voted for the hacker:\n"
-    for voter in hacker_voters:
-        voter_member = guild.get_member(voter)
-        voter_name = voter_member.display_name if voter_member else "Unknown voter"
-        statistics_message += f"{voter_name} (ID: {voter})\n"
-
-    # Send the message to all members with the sudo role
-    for member in guild.members:
-        if sudo_role in member.roles:
-            try:
-                await member.send(statistics_message)
-            except discord.Forbidden:
-                print(f"Could not send message to {member.display_name}")
 
 @tasks.loop(seconds=1)
 async def round_timer():
@@ -323,16 +321,13 @@ async def round_timer():
                     await bot.get_channel(CHANNEL_ID).send("The hacker has been found! Game over.")
                     game_running = False
                     round_timer.stop()
-                    await send_voting_statistics()  # Send statistics to sudo members
+                    await send_voting_statistics()
                     return
             else:
                 await bot.get_channel(CHANNEL_ID).send("No votes received. No one has been terminated.")
             
             round_number += 1
-            if test_mode:
-                round_end_time = now + timedelta(minutes=1)
-            else:
-                round_end_time = now + timedelta(hours=1)
+            round_end_time = datetime.now() + timedelta(minutes=1) if test_mode else datetime.now() + timedelta(hours=1)
             votes = {}
             vote_times = {}
             voted_users = set()
@@ -356,30 +351,31 @@ async def on_message(message):
         return
 
     if message.content.lower() == "yes":
-        await message.author.send(get_random_yes_response())
+        await message.author.send(get_random_response(YES_RESPONSES))
     elif message.content.lower() == "no":
-        await message.author.send(get_random_no_response())
+        await message.author.send(get_random_response(NO_RESPONSES))
 
     await bot.process_commands(message)
 
 async def automated_voting():
     while game_running and test_mode:
-        # Simulate a random user casting a vote
-        random_user_id = random.choice(list(employee_data.keys()))
-        random_vote = random.choice(list(employee_data.values()))['employee_id']
-        votes[random_user_id] = random_vote
-        vote_times[random_user_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        await asyncio.sleep(10)  # Adjust the interval for automated voting as needed
+        if employee_data:
+            random_user_id = random.choice(list(employee_data.keys()))
+            random_vote = random.choice(list(employee_data.values()))['employee_id']
+            votes[random_user_id] = random_vote
+            vote_times[random_user_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        await asyncio.sleep(10)
 
 async def automated_nmap_scans():
     while game_running and test_mode:
-        # Simulate a random nmap scan
-        random_user_id = random.choice(list(employee_data.keys()))
-        await nmap(bot.get_context(random_user_id), target="404.4.4.4")
-        await asyncio.sleep(15)  # Adjust the interval for automated nmap scans as needed
+        if employee_data:
+            random_user_id = random.choice(list(employee_data.keys()))
+            await nmap(bot.get_context(random_user_id), target="404.4.4.4")
+        await asyncio.sleep(15)
 
 bot_token = os.getenv('NULLBOT_TOKEN')
 if bot_token:
     bot.run(bot_token)
 else:
     print("Error: Bot token not found. Please set the NULLBOT_TOKEN environment variable.")
+    
