@@ -215,9 +215,10 @@ Host script results:
         # Send a random failure response if the input is not valid
         failure_response = random.choice(FAILURE_RESPONSES)
         await ctx.author.send(failure_response)
+
 @bot.command(name='null')
 async def null(ctx, action: str):
-    global game_running, round_end_time, hacker_id, round_number, test_mode, voted_users
+    global game_running, round_end_time, hacker_id, round_number, test_mode, voted_users, CHANNEL_ID
     guild = ctx.guild
     sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
 
@@ -237,9 +238,9 @@ async def null(ctx, action: str):
 
                 await ctx.author.send("What's the channel ID for Null to post in?")
                 channel_id_msg = await bot.wait_for('message', check=check)
-                channel_id = int(channel_id_msg.content)
+                CHANNEL_ID = int(channel_id_msg.content)
                 
-                await bot.get_channel(channel_id).send("Null is watching... Let the games begin!")
+                await bot.get_channel(CHANNEL_ID).send("Null is watching... Let the games begin!")
 
                 await testmode(ctx, test_mode_state)
                 await set_hacker_id(ctx, hacker_id_value)
@@ -247,11 +248,9 @@ async def null(ctx, action: str):
                 game_running = True
                 round_number = 1
                 round_end_time = datetime.now() + timedelta(minutes=1) if test_mode else datetime.now() + timedelta(hours=1)
-                if test_mode:
-                    await automated_voting()
-                    await automated_nmap_scans()
                 await ctx.author.send(f"Game started! Hacker ID: {hacker_id}. Number of rounds: 1 hour each (1 minute in test mode).")
-                round_timer.start()
+                if not round_timer.is_running():
+                    round_timer.start()
             else:
                 await ctx.author.send("The game is already running.")
         elif action == 'stop':
@@ -313,6 +312,8 @@ async def round_timer():
     global game_running, round_end_time, votes, hacker_id, round_number, test_mode, voted_users
     if game_running:
         now = datetime.now()
+        time_remaining = (round_end_time - now).seconds
+        
         if now >= round_end_time:
             if votes:
                 most_voted = max(set(votes.values()), key=list(votes.values()).count)
@@ -332,9 +333,9 @@ async def round_timer():
             vote_times = {}
             voted_users = set()
             await bot.get_channel(CHANNEL_ID).send("Next round started. Voting has opened to terminate an employee.")
-        elif (round_end_time - now).seconds == 10 and test_mode:
-            await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 seconds!")
-        elif (round_end_time - now).seconds == 600 and not test_mode:
+        elif test_mode and time_remaining == 45:
+            await bot.get_channel(CHANNEL_ID).send("Voting has opened for 45 seconds!")
+        elif not test_mode and time_remaining == 600:
             await bot.get_channel(CHANNEL_ID).send("Voting has opened for 10 minutes!")
 
 @round_timer.before_loop
@@ -378,4 +379,3 @@ if bot_token:
     bot.run(bot_token)
 else:
     print("Error: Bot token not found. Please set the NULLBOT_TOKEN environment variable.")
-    
