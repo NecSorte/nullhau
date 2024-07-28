@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands, tasks
+from discord.ext.commands import CommandNotFound
 import random
 from datetime import datetime, timedelta
 import os
@@ -9,7 +10,7 @@ from collections import defaultdict
 from responses import (
     NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES,
     SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES,
-    TERMINATION_RESPONSES, WINDOWS_RESPONSES, ROLE_FACTS_MAPPING,
+    TERMINATION_RESPONSES, WINDOWS_RESPONSES, ROLE_FACTS_MAPPING, ROLE_FACTS, ROLES
 )
 
 # Load environment variables from .env file
@@ -118,7 +119,7 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
+    if isinstance(error, CommandNotFound):
         await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
 
 @bot.command(name='badge')
@@ -130,7 +131,7 @@ async def badge(ctx):
     employee_id = generate_employee_id(hacker_id)
     name = random.choice(NAMES)
     role = random.choice(list(ROLE_FACTS_MAPPING.keys()))
-    role_fact = ROLE_FACTS_MAPPING.get(role)
+    role_fact = ROLE_FACTS_MAPPING.get(role, random.choice(ROLE_FACTS))
 
     employee_data[ctx.author.id] = {
         "employee_id": employee_id,
@@ -281,17 +282,47 @@ async def set_hacker_id(ctx, hacker_id_value: int):
 
 @bot.command(name='say')
 async def say(ctx, *, text: str):
-    guild = ctx.guild
-    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
-    if sudo_role in ctx.author.roles:
-        sanitized_text = discord.utils.escape_markdown(text)
-        channel = bot.get_channel(CHANNEL_ID)
-        if channel:
-            await channel.send(sanitized_text)
-        else:
-            await ctx.author.send("I couldn't find the channel to send the message to.")
+    print(f"/say command invoked by {ctx.author} with text: {text}")
+
+    # Check if the message is a direct message
+    if isinstance(ctx.channel, discord.DMChannel):
+        # Fetch the guilds the bot is part of
+        for guild in bot.guilds:
+            # Get the member object from the guild
+            member = guild.get_member(ctx.author.id)
+            if not member:
+                continue
+
+            # Fetch the sudo role
+            sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+            print(f"Sudo role in {guild.name}: {sudo_role}")
+
+            if not sudo_role:
+                continue
+
+            # Check if the author has the sudo role in the guild
+            if sudo_role in member.roles:
+                sanitized_text = discord.utils.escape_markdown(text)
+                print(f"Sanitized text: {sanitized_text}")
+
+                # Fetch the channel
+                channel = bot.get_channel(CHANNEL_ID)
+                print(f"Channel: {channel}")
+
+                if channel:
+                    await channel.send(sanitized_text)
+                    print("Message sent to channel")
+                    return
+                else:
+                    await ctx.author.send("I couldn't find the channel to send the message to.")
+                    print("Channel not found")
+                    return
+
+        await ctx.author.send("You do not have permission to use this command or sudo role not found.")
+        print("Permission denied or sudo role not found")
     else:
-        await ctx.author.send("You do not have permission to use this command.")
+        await ctx.author.send("This command can only be used in direct messages.")
+        print("Command used in a non-DM channel")
 
 @bot.command(name='commands')
 async def commands(ctx):
