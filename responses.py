@@ -141,8 +141,7 @@ TBA
 PENTESTER_FACTS = """
 
 ```
-Pen Testing Team Background: You actually just test pens for Null Corp.
-Overview: Our team, known as the "Elite Pen Testing Unit," is dedicated to evaluating the performance, durability, and quality of high-end writing instruments. However, to add a layer of intrigue and to match the tech-savvy environment we operate in, we've named our pen models using acronyms that sound like advanced red team cyber security tactics. This often confuses our colleagues in cyber security, adding a humorous twist to our daily operations. 
+Pen Testing Team Background: You actually just test pens for Null Corp. Our team, known as the "Elite Pen Testing Unit," is dedicated to evaluating the performance, durability, and quality of high-end writing instruments. However, to add a layer of intrigue and to match the tech-savvy environment we operate in, we've named our pen models using acronyms that sound like advanced red team cyber security tactics. This often confuses our colleagues in cyber security, adding a humorous twist to our daily operations. 
 
 Side quest for a hint: If you collect enough pens to make 404 on the counter and/or table. Show Null Security/Staff for a free hint/clue: 
 
