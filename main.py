@@ -85,12 +85,13 @@ async def send_voting_statistics():
             voter_name = voter_member.display_name if voter_member else "Unknown voter"
             statistics_message += f"{voter_name} (ID: {voter_id}) voted for {voted_id} at {vote_time}\n"
 
-        hacker_voters = [voter for voter, voted in votes.items() if voted == hacker_id]
+        hacker_voters = [voter_id for voter_id, voted_id in votes.items() if voted_id == str(hacker_id)]
         statistics_message += "\nMembers who voted for the hacker:\n"
-        for voter in hacker_voters:
-            voter_member = guild.get_member(voter)
+        for voter_id in hacker_voters:
+            voter_member = guild.get_member(voter_id)
             voter_name = voter_member.display_name if voter_member else "Unknown voter"
-            statistics_message += f"{voter_name} (ID: {voter})\n"
+            vote_time = vote_times.get(voter_id, "Unknown time")
+            statistics_message += f"{voter_name} (ID: {voter_id}) at {vote_time}\n"
 
         for member in guild.members:
             if sudo_role in member.roles and member != bot.user:
@@ -148,6 +149,7 @@ async def badge(ctx):
         f"Name: {name}\n"
         f"Role: {role}\n"
         f"Role Fact: {role_fact}\n"
+        "For a list of commands, type `/commands`"
     )
 
 @bot.command(name='vote')
@@ -205,6 +207,27 @@ Host script results:
             f"{nmap_response}\n\n"
             f"{success_response}\n"
             f"{windows_response}\n"
+        "")
+    else:
+        # Send a random failure response if the input is not valid
+        failure_response = random.choice(FAILURE_RESPONSES)
+        await ctx.author.send(failure_response)
+
+@bot.command(name='dirb')
+async def nmap(ctx, target: str):
+    if target == "null404.org" or "www.null404.org" or "https:/www.null404.org" or "https://null404.org":
+        success_response = random.choice(SUCCESS_RESPONSES)
+        windows_response = random.choice(WINDOWS_RESPONSES)
+        dirb_response = """
+
+```
+dirb results:
+stuff and things!
+```
+        """
+        await ctx.author.send(
+            f"{dirb_response}\n\n"
+            f"{success_response}\n"
         "")
     else:
         # Send a random failure response if the input is not valid
@@ -331,10 +354,11 @@ async def commands(ctx):
         "/badge - Get your employee badge.\n"
         "/vote <id_number> - Vote to eliminate an employee by their ID.\n"
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
-        "/null <start|stop> - Start or stop the hacker game.\n"
-        "/testmode <on|off> - Activate or deactivate test mode.\n"
-        "/set_hacker_id <id> - Set the hacker ID.\n"
-        "/say <text> - Make the bot say something.\n"
+        "/dirb <target> - Simulate an dirb scan on a target (just for fun).\n"
+        # "/null <start|stop> - Start or stop the hacker game.\n"
+        # "/testmode <on|off> - Activate or deactivate test mode.\n"
+        # "/set_hacker_id <id> - Set the hacker ID.\n"
+        # "/say <text> - Make the bot say something.\n"
         "/commands - Show this help message."
     )
     await ctx.author.send(help_text)
