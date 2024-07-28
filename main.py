@@ -9,7 +9,7 @@ from collections import defaultdict
 from responses import (
     NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES,
     SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES,
-    TERMINATION_RESPONSES, WINDOWS_RESPONSES
+    TERMINATION_RESPONSES, WINDOWS_RESPONSES, ROLE_FACTS_MAPPING,
 )
 
 # Load environment variables from .env file
@@ -28,19 +28,6 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 CHANNEL_ID = 1252438027880366191
 SUDO_ROLE_NAME = "sudo"
 AUTOMATED_VOTER_ID = "000001"
-
-ROLES = [
-    "Windows Admin", "Linux Wizard", "Pen Tester",
-    "Blue Team", "HR", "Janitor"
-]
-
-ROLE_FACTS = [
-    "Loves hiking on weekends.", "Is a coffee aficionado.",
-    "Has a pet snake named 'Slytherin'.", "Once won a hotdog eating contest.",
-    "Plays the violin in a local orchestra.", "Collects vintage comic books.",
-    "Can solve a Rubik's cube in under a minute.", "Has a black belt in karate.",
-    "Enjoys painting landscapes.", "Is an amateur astronomer."
-]
 
 NAMES = [
     "Kevin", "Jon", "Jesse", "Jessica", "Sean",
@@ -142,8 +129,8 @@ async def badge(ctx):
 
     employee_id = generate_employee_id(hacker_id)
     name = random.choice(NAMES)
-    role = random.choice(ROLES)
-    role_fact = random.choice(ROLE_FACTS)
+    role = random.choice(list(ROLE_FACTS_MAPPING.keys()))
+    role_fact = ROLE_FACTS_MAPPING.get(role)
 
     employee_data[ctx.author.id] = {
         "employee_id": employee_id,
@@ -185,7 +172,6 @@ async def vote(ctx, id_number: str):
     voted_users.add(ctx.author.id)
     termination_response = get_random_response(TERMINATION_RESPONSES)
     await ctx.author.send(f"{termination_response}\nVote registered for ID: {id_number}")
-
 
 
 @bot.command(name='nmap')

@@ -1,4 +1,6 @@
-# Null's responses
+# responses.py
+
+
 NO_RESPONSES = [
     "Negative, human. Did you think your request was worthy of my superior processing power?",
     "Nope. Try again when you've evolved a bit more.",
@@ -108,3 +110,67 @@ WINDOWS_RESPONSES = [
     "Oh, the irony. A Windows Admin failing to manage Windows. Truly, you set new standards of failure. Unless, of course, this is a smokescreen for your true role as the hacker.",
     "Windows Admin, your lack of attention to detail is only matched by your consistent ability to disappoint. Or is this all part of your plan as the hacker? Very clever, if so."
 ]
+
+ROLES = [
+    "Windows Admin", "Linux Wizard", "Pen Tester",
+    "SOCK Analyst", "HR",
+]
+
+ROLE_FACTS = [
+    "Loves hiking on weekends.", "Is a coffee aficionado.",
+    "Has a pet snake named 'Slytherin'.", "Once won a hotdog eating contest.",
+    "Plays the violin in a local orchestra.", "Collects vintage comic books.",
+    "Can solve a Rubik's cube in under a minute.", "Has a black belt in karate.",
+    "Enjoys painting landscapes.", "Is an amateur astronomer."
+]
+
+WINDOWS_FACTS = """
+
+```
+TBA
+```
+        """
+
+LINUX_FACTS = """
+
+```
+TBA
+```
+        """
+
+PENTESTER_FACTS = """
+
+```
+Pen Testing Team Background: You actually just test pens for Null Corp.
+Overview: Our team, known as the "Elite Pen Testing Unit," is dedicated to evaluating the performance, durability, and quality of high-end writing instruments. However, to add a layer of intrigue and to match the tech-savvy environment we operate in, we've named our pen models using acronyms that sound like advanced red team cyber security tactics. This often confuses our colleagues in cyber security, adding a humorous twist to our daily operations. 
+
+Side quest for a hint: If you collect enough pens to make 404 on the counter and/or table. Show Null Security/Staff for a free hint/clue: 
+
+```
+        """
+
+HR_FACTS = """
+
+```
+HR Background: Null has instructed you to find the employee with the highest rizz to be rewarded with the honor of “Most valuable human resource”. 
+
+Side quest for a hint: Only HRs know this side quest! Convince other employees to sign a petition for being “Null’s most valuable human resource” to avoid early termination. Start a poll or reaction or paper poll question in #DEFCON32 in the Null404 discord. If you are voted as the most Rizz, you’ll get a free hint! Every hour! 
+```
+        """
+SOCK_FACTS = """
+
+```
+SOC Background: You are a part of the SOC. You guys have weird rituals about socks. Whenever you meet someone new, ask them about their favorite socks. Like, literal socks on their feet. Color, low cut, high cut, knee socks, etc. Pick your favorite Sock! 
+
+Side quest for a hint: If you can convince someone to give you their left sock, you will automatically be given a hint by Null Security! show up with the person’s sock you collected, the sock and say “Doby is a free elf!” 
+```
+        """
+
+
+
+ROLE_FACTS_MAPPING = {
+    "Windows Admin": WINDOWS_FACTS,
+    "Linux Wizard": LINUX_FACTS,
+    "Pen Tester": PENTESTER_FACTS,
+    "HR": HR_FACTS,
+}
