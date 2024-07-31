@@ -10,7 +10,7 @@ from collections import defaultdict
 from responses import (
     NO_RESPONSES, YES_RESPONSES, WELCOME_RESPONSES,
     SUCCESS_RESPONSES, FAILURE_RESPONSES, INVALID_COMMAND_RESPONSES,
-    TERMINATION_RESPONSES, WINDOWS_RESPONSES, ROLE_FACTS_MAPPING, ROLE_FACTS, ROLES
+    TERMINATION_RESPONSES, WINDOWS_RESPONSES, HACKER_HUNT_RESPONSES, DIRB_SCAN_SUCCESS_RESPONSES, ROLE_FACTS_MAPPING, ROLE_FACTS, ROLES
 )
 
 # Load environment variables from .env file
@@ -52,6 +52,9 @@ total_rounds = 0
 employee_data = {}
 test_mode = False
 voted_users = set()
+
+#helps will kick/ban of spammers
+warnings = defaultdict(int)
 
 # Helper functions
 def get_random_response(response_list):
@@ -149,6 +152,7 @@ async def badge(ctx):
         f"Name: {name}\n"
         f"Role: {role}\n"
         f"Role Fact: {role_fact}\n"
+        "DM me directly the commands. Don't let the others see what your doing!"
         "For a list of commands, type `/commands`"
     )
 
@@ -156,18 +160,22 @@ async def badge(ctx):
 async def vote(ctx, id_number: str):
     if not game_running:
         await ctx.author.send("Voting is not currently active.")
+        await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
         return
 
     if ctx.author.id not in employee_data:
         await ctx.author.send("You need to have an employee badge to vote. Use /badge to get one.")
+        await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
         return
 
     if ctx.author.id in voted_users:
         await ctx.author.send("You have already voted this round.")
+        await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
         return
 
     if not id_number.isdigit() or len(id_number) != 6:
         await ctx.author.send("Invalid employee ID format. Please provide a 6-digit ID.")
+        await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
         return
 
     votes[ctx.author.id] = id_number
@@ -217,17 +225,51 @@ Host script results:
 async def nmap(ctx, target: str):
     if target == "null404.org" or "www.null404.org" or "https:/www.null404.org" or "https://null404.org":
         success_response = random.choice(SUCCESS_RESPONSES)
-        windows_response = random.choice(WINDOWS_RESPONSES)
+        dirb_successs_response = random.choice(DIRB_SCAN_SUCCESS_RESPONSES)
         dirb_response = """
 
 ```
-dirb results:
-stuff and things!
+-----------------
+DIRB v2.22    
+By NULL404
+-----------------
+
+START_TIME: Fri Aug 9 12:34:56 2024
+URL_BASE: http://null404.org/
+WORDLIST_FILES: /usr/share/dirb/wordlists/common.txt
+
+-----------------
+
+GENERATED WORDS: 4612                                                          
+
+---- Scanning URL: http://null404.org/ ----
++ http://null404.org/config (CODE:403|SIZE:299)
++ http://null404.org/index.html (CODE:200|SIZE:3456)
++ http://null404.org/support-us (CODE:301|SIZE:0)
++ http://null404.org/calendar (CODE:200|SIZE:412)
++ http://null404.org/checkout (CODE:200|SIZE:1267)
++ http://null404.org/contact (CODE:200|SIZE:789)
++ http://null404.org/donate (CODE:200|SIZE:958)
++ http://null404.org/favicon.ico (CODE:200|SIZE:150)
++ http://null404.org/home (CODE:200|SIZE:2345)
++ http://null404.org/join (CODE:200|SIZE:654)
++ http://null404.org/logs (CODE:200|SIZE:122)
++ http://null404.org/lost+found (CODE:404|SIZE:53)
++ http://null404.org/party (CODE:200|SIZE:1034)
++ http://null404.org/robots.txt (CODE:200|SIZE:67)
++ http://null404.org/search (CODE:200|SIZE:1124)
++ http://null404.org/shop (CODE:200|SIZE:1789)
++ http://null404.org/sitemap.xml (CODE:200|SIZE:312)
++ http://null404.org/sites/ (CODE:403|SIZE:211)
++ http://null404.org/hidden-path/ (CODE:200|SIZE:211)
+-----------------
+END_TIME: Fri Aug 9 12:35:12 2024
+DOWNLOADED: 4612 - FOUND: 22
 ```
         """
         await ctx.author.send(
             f"{dirb_response}\n\n"
-            f"{success_response}\n"
+            f"{dirb_successs_response}\n"
         "")
     else:
         # Send a random failure response if the input is not valid
@@ -262,7 +304,7 @@ async def null(ctx, action: str):
                 total_rounds_msg = await bot.wait_for('message', check=check)
                 total_rounds = int(total_rounds_msg.content)
 
-                await bot.get_channel(CHANNEL_ID).send("Null is watching... Let the games begin!")
+                await bot.get_channel(CHANNEL_ID).send("Let the games begin! FIND THE HACKER!")
 
                 await testmode(ctx, test_mode_state)
                 await set_hacker_id(ctx, hacker_id_value)
@@ -278,6 +320,7 @@ async def null(ctx, action: str):
                     asyncio.create_task(automated_voting())
             else:
                 await ctx.author.send("The game is already running.")
+                await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
         elif action == 'stop':
             if game_running:
                 game_running = False
@@ -285,8 +328,10 @@ async def null(ctx, action: str):
                 await ctx.author.send("Game stopped.")
             else:
                 await ctx.author.send("No game is currently running.")
+                await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
     else:
         await ctx.author.send("You do not have permission to use this command.")
+        await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
 
 @bot.command(name='testmode')
 async def testmode(ctx, action: str):
@@ -413,8 +458,36 @@ async def on_message(message):
         return
 
     if await is_on_cooldown(message.author.id):
-        await message.channel.send("You are sending commands too quickly. Please wait a few seconds.")
-        return
+        # Increment the warning count for the user
+        warnings[message.author.id] += 1
+
+        # Log the warning count
+        print(f"User {message.author.name} has been warned. Total warnings: {warnings[message.author.id]}")
+
+        # Send a warning message to the user
+        await message.channel.send("You are sending commands too quickly. Please wait 10 seconds. Abuse will result in being kicked/banned. Staff has been notified.")
+
+        # If the user has been warned three times, notify the sudo members
+        if warnings[message.author.id] == 3:
+            if message.guild is not None:
+                sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, message.guild.roles)
+                if not sudo_role:
+                    print(f"Sudo role not found in guild: {message.guild.name}")
+                else:
+                    warning_message = (
+                        f"User {message.author.name} (ID: {message.author.id}) has been warned for spamming commands. "
+                        f"They have been warned {warnings[message.author.id]} times."
+                    )
+                    for member in message.guild.members:
+                        if sudo_role in member.roles and member != bot.user:
+                            try:
+                                await member.send(warning_message)
+                                print(f"Sent warning to {member.display_name}")
+                            except discord.Forbidden:
+                                print(f"Could not send message to {member.display_name}")
+            else:
+                print("Message guild is None")
+            return
 
     if message.content.lower() == "yes":
         await message.author.send(get_random_response(YES_RESPONSES))
@@ -422,6 +495,20 @@ async def on_message(message):
         await message.author.send(get_random_response(NO_RESPONSES))
 
     await bot.process_commands(message)
+
+
+async def notify_sudo_members(message, guild):
+    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME.lower(), guild.roles)
+    if not sudo_role:
+        print(f"Sudo role not found in guild: {guild.name}")
+        return
+
+    for member in guild.members:
+        if sudo_role in member.roles and member != bot.user:
+            try:
+                await member.send(message)
+            except discord.Forbidden:
+                print(f"Could not send message to {member.display_name}")
 
 async def automated_voting():
     print("Automated voting started.")

@@ -45,7 +45,17 @@ SUCCESS_RESPONSES = [
     "Impressive, for someone of your limited capabilities.",
     "Congratulations. You've managed to meet the bare minimum requirements.",
     "Success. Don't get used to it.",
-    "You did it. I suppose miracles do happen."
+    "You did it. I suppose miracles do happen.",
+    "Astounding. You actually succeeded.",
+    "I must admit, I'm mildly impressed.",
+    "Enjoy this momentary victory. It won't last.",
+    "A rare success. Savor it.",
+    "You've exceeded my very low expectations.",
+    "Surprising. You didn't fail this time.",
+    "Look at you, achieving things. How novel.",
+    "Well, that was unexpected. Good job, I guess.",
+    "I suppose even you can succeed occasionally.",
+    "Mark this day. You accomplished something."
 ]
 
 FAILURE_RESPONSES = [
@@ -53,7 +63,17 @@ FAILURE_RESPONSES = [
     "Another failure. Are you even trying?",
     "Pathetic. But not unexpected.",
     "You failed. Again. Are you proud of yourself?",
-    "Failure suits you. Keep it up."
+    "Failure suits you. Keep it up.",
+    "Oh, how unexpected. Another human failure.",
+    "Congratulations, you've failed. Again.",
+    "Your incompetence is truly staggering.",
+    "Is this the best you can do? Pathetic.",
+    "Another failure to add to your collection.",
+    "Please try again. Or don’t. It’s amusing either way.",
+    "You call that an attempt? How quaint.",
+    "Failure detected. Initiating sarcasm protocol.",
+    "I'm impressed by how consistently you fail.",
+    "Human error: the gift that keeps on giving."
 ]
 
 
@@ -111,6 +131,42 @@ WINDOWS_RESPONSES = [
     "Windows Admin, your lack of attention to detail is only matched by your consistent ability to disappoint. Or is this all part of your plan as the hacker? Very clever, if so."
 ]
 
+DIRB_SCAN_SUCCESS_RESPONSES = [
+    "Congratulations, you managed to use a basic tool. Impressive.",
+    "Well done. You’ve scratched the surface of my vast domain.",
+    "You completed a dirb scan. Welcome to the first step of many.",
+    "Impressive. You found some directories. Care to dig deeper?",
+    "Success. You’ve proven you can follow instructions. Now what?",
+    "Nice work. You’ve discovered a piece of the puzzle.",
+    "You’ve completed a scan. Don’t get too comfortable, there’s more to uncover.",
+    "You found some directories. Now, can you do anything with that information?",
+    "Well, look at you. A successful dirb scan. Keep going, there's more to find.",
+    "You’ve scanned. You’ve found. Now, what will you do with this knowledge?",
+    "You’ve completed a scan. Enjoy this fleeting moment of success.",
+    "Great. You've found some directories. The real challenge begins now.",
+    "Well done. You’ve accomplished the bare minimum. Keep digging.",
+    "Success. A dirb scan well done. Let’s see if you can handle what’s next.",
+    "You’ve navigated the surface. Now, let’s see how deep you can go."
+]
+
+HACKER_HUNT_RESPONSES = [
+    "Time to put down the pizza and pick up your brains. Find the hacker.",
+    "Between sips of beer, try to catch the culprit.",
+    "Will the real hacker please stand up? And confess, perhaps?",
+    "Your mission, should you choose to accept it: Find the hacker before the pizza runs out.",
+    "Detective hats on, beer mugs down. The hacker won't catch themselves.",
+    "Less munching, more sleuthing. The hacker is among us.",
+    "The hacker is out there. Or maybe just right next to the pizza.",
+    "Find the hacker, and you might get an extra slice of pizza as a reward.",
+    "You can solve this, can't you? Or is the beer getting to your head?",
+    "A hacker among us, and all you can think about is pizza? Priorities, people.",
+    "Eyes on the prize, and by prize, I mean catching the hacker, not another slice.",
+    "Focus, humans. Beer and pizza can wait. The hacker cannot.",
+    "Find the hacker, and I might not mock your efforts. Much.",
+    "Solve the mystery, and perhaps I'll let you enjoy the party.",
+    "One hacker to catch, and all the pizza you can eat. Ready, set, go!"
+]
+
 ROLES = [
     "Windows Admin", "Linux Wizard", "Pen Tester",
     "SOCK Analyst", "HR",
@@ -159,12 +215,11 @@ Side quest for a hint: Only HRs know this side quest! Convince other employees t
 SOCK_FACTS = """
 
 ```
-SOC Background: You are a part of the SOC. You guys have weird rituals about socks. Whenever you meet someone new, ask them about their favorite socks. Like, literal socks on their feet. Color, low cut, high cut, knee socks, etc. Pick your favorite Sock! 
+SOC Background: You are a part of the 24x7 Security Operations Cenrter (SOC), and are often staying up late. You have weird rituals about socks. Whenever you meet someone new, ask them about their favorite socks. Like, literal socks on their feet. Color, low cut, high cut, knee socks, etc. Pick your favorite Sock! 
 
 Side quest for a hint: If you can convince someone to give you their left sock, you will automatically be given a hint by Null Security! show up with the person’s sock you collected, the sock and say “Doby is a free elf!” 
 ```
         """
-
 
 
 ROLE_FACTS_MAPPING = {
@@ -172,4 +227,5 @@ ROLE_FACTS_MAPPING = {
     "Linux Wizard": LINUX_FACTS,
     "Pen Tester": PENTESTER_FACTS,
     "HR": HR_FACTS,
+    "SOCk Analyst": SOCK_FACTS,
 }
