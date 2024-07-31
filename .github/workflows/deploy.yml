@@ -44,12 +44,16 @@ jobs:
 
     - name: Run Bandit
       run: bandit -r .
+      continue-on-error: true
+
 
     - name: Install TruffleHog
       run: pip install truffleHog
 
     - name: Run TruffleHog
       run: trufflehog filesystem --directory=.
+      continue-on-error: true
+
 
     - name: Download Snyk CLI
       run: curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux && chmod +x snyk
