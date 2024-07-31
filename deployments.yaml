@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: hau2
-        image: necsorte/hau:latest
+        image: necsorte/nullhau:latest
         ports:
         - containerPort: 80
       imagePullSecrets:
