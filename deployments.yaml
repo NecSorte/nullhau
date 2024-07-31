@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hau-deployment
+  labels:
+    app: hau
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hau
+  template:
+    metadata:
+      labels:
+        app: hau
+    spec:
+      containers:
+      - name: hau-container
+        image: necsorte/hau:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NULLBOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: discord-secrets
+              key: token
