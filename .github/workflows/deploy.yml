@@ -84,6 +84,7 @@ jobs:
       run: |
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nullhau:${{ github.sha }} .
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nullhau:${{ github.sha }}
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nullhau:latest
 
     - name: Set up kubectl
       uses: Azure/setup-kubectl@v1
