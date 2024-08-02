@@ -4,7 +4,7 @@ metadata:
   name: hau2
   namespace: hau  # or the appropriate namespace
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: hau2
