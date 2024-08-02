@@ -465,7 +465,7 @@ async def on_message(message):
         print(f"User {message.author.name} has been warned. Total warnings: {warnings[message.author.id]}")
 
         # Send a warning message to the user
-        await message.channel.send("You are sending commands too quickly. Please wait 10 seconds. Abuse will result in being kicked/banned. Malice logged.")
+        await message.channel.send("You are sending commands too quickly. Please wait 10 seconds. Abuse will result in being kicked/banned. Malice logged...")
 
         # If the user has been warned three times, notify the sudo members
         if warnings[message.author.id] == 3:
