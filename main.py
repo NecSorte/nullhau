@@ -487,8 +487,7 @@ async def on_message(message):
                                 print(f"Could not send message to {member.display_name}")
             else:
                 print("Message guild is None")
-            return
-        
+
         # If the user has been warned ten times, kick the user and notify sudo members
         if warnings[message.author.id] >= 10:
             if message.guild is not None:
@@ -524,7 +523,6 @@ async def on_message(message):
         await message.author.send(get_random_response(NO_RESPONSES))
 
     await bot.process_commands(message)
-
 
 async def notify_sudo_members(message, guild):
     sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME.lower(), guild.roles)
