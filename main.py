@@ -465,56 +465,39 @@ async def on_message(message):
         print(f"User {message.author.name} has been warned. Total warnings: {warnings[message.author.id]}")
 
         # Send a warning message to the user
-        await message.channel.send("You are sending commands too quickly. Please wait 10 seconds. Abuse will result in being kicked/banned. Malice logged...")
+        await message.channel.send("You are sending commands too quickly. Please wait 10 seconds. Abuse will result in being kicked/banned. Malice noted.")
 
         # If the user has been warned three times, notify the sudo members
         if warnings[message.author.id] == 3:
-            if message.guild is not None:
-                sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, message.guild.roles)
-                if not sudo_role:
-                    print(f"Sudo role not found in guild: {message.guild.name}")
-                else:
-                    warning_message = (
-                        f"User {message.author.name} (ID: {message.author.id}) has been warned for spamming commands. "
-                        f"They have been warned {warnings[message.author.id]} times."
-                    )
-                    for member in message.guild.members:
-                        if sudo_role in member.roles and member != bot.user:
-                            try:
-                                await member.send(warning_message)
-                                print(f"Sent warning to {member.display_name}")
-                            except discord.Forbidden:
-                                print(f"Could not send message to {member.display_name}")
-            else:
-                print("Message guild is None")
+            await notify_sudo_members(f"User {message.author.name} (ID: {message.author.id}) has been warned for spamming commands. They have been warned {warnings[message.author.id]} times.")
 
-        # If the user has been warned ten times, kick the user and notify sudo members
+        # If the user has been warned ten times, kick the user from all guilds and notify sudo members
         if warnings[message.author.id] >= 10:
-            if message.guild is not None:
-                try:
-                    await message.author.kick(reason="Exceeded maximum warnings for spamming commands")
-                    print(f"User {message.author.name} has been kicked for spamming commands.")
+            for guild in bot.guilds:
+                member = guild.get_member(message.author.id)
+                if member:
+                    try:
+                        await member.kick(reason="Exceeded maximum warnings for spamming commands")
+                        print(f"User {message.author.name} has been kicked from {guild.name} for spamming commands.")
 
-                    # Notify the sudo members
-                    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, message.guild.roles)
-                    if not sudo_role:
-                        print(f"Sudo role not found in guild: {message.guild.name}")
-                    else:
-                        kick_message = (
-                            f"User {message.author.name} (ID: {message.author.id}) has been kicked for spamming commands. "
-                            f"They received {warnings[message.author.id]} warnings."
-                        )
-                        for member in message.guild.members:
-                            if sudo_role in member.roles and member != bot.user:
-                                try:
-                                    await member.send(kick_message)
-                                    print(f"Sent kick notification to {member.display_name}")
-                                except discord.Forbidden:
-                                    print(f"Could not send message to {member.display_name}")
-                except discord.Forbidden:
-                    print(f"Could not kick {message.author.name}. Insufficient permissions.")
-            else:
-                print("Message guild is None")
+                        # Notify the sudo members
+                        sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+                        if not sudo_role:
+                            print(f"Sudo role not found in guild: {guild.name}")
+                        else:
+                            kick_message = (
+                                f"User {message.author.name} (ID: {message.author.id}) has been kicked for spamming commands. "
+                                f"They received {warnings[message.author.id]} warnings."
+                            )
+                            for member in guild.members:
+                                if sudo_role in member.roles and member != bot.user:
+                                    try:
+                                        await member.send(kick_message)
+                                        print(f"Sent kick notification to {member.display_name}")
+                                    except discord.Forbidden:
+                                        print(f"Could not send message to {member.display_name}")
+                    except discord.Forbidden:
+                        print(f"Could not kick {message.author.name} from {guild.name}. Insufficient permissions.")
             return
 
     if message.content.lower() == "yes":
