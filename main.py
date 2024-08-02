@@ -68,10 +68,10 @@ def generate_employee_id(hacker_id):
 
 async def is_on_cooldown(user_id):
     now = datetime.now()
-    bucket = cooldown_mapping.get_bucket(None)
-    retry_after = bucket.update_rate_limit()
-    if retry_after:
+    last_command_time = user_last_command_time[user_id]
+    if (now - last_command_time).seconds < COMMAND_COOLDOWN:
         return True
+    user_last_command_time[user_id] = now
     return False
 
 async def send_voting_statistics():
@@ -465,7 +465,10 @@ async def on_message(message):
         print(f"User {message.author.name} has been warned. Total warnings: {warnings[message.author.id]}")
 
         # Send a warning message to the user
-        await message.channel.send("You are sending commands too quickly. Please wait 5 seconds. Abuse will result in being kicked/banned. Malice logged...")
+        try:
+            await message.channel.send("You are sending commands too quickly. Please wait 5 seconds. Abuse will result in being kicked/banned. Malice logged...")
+        except discord.errors.Forbidden:
+            print(f"Could not send message to {message.author.name}")
 
         # If the user has been warned three times, notify the sudo members
         if warnings[message.author.id] == 3:
@@ -473,8 +476,11 @@ async def on_message(message):
 
         # If the user has been warned ten times, kick the user from all guilds and notify sudo members
         if warnings[message.author.id] >= 10:
-            await message.author.send("You are terminated for malice spamming. You must wait 5 seconds between each command. You may join back, but you will be banned in the future.")
-            
+            try:
+                await message.author.send("You are terminated for malice spamming. You must wait 5 seconds between each command. You may join back, but you will be banned in the future.")
+            except discord.errors.Forbidden:
+                print(f"Could not send message to {message.author.name}")
+
             for guild in bot.guilds:
                 member = guild.get_member(message.author.id)
                 if member:
@@ -496,7 +502,7 @@ async def on_message(message):
                                     try:
                                         await member.send(kick_message)
                                         print(f"Sent kick notification to {member.display_name}")
-                                    except discord.Forbidden:
+                                    except discord.errors.Forbidden:
                                         print(f"Could not send message to {member.display_name}")
 
                         # Notify the specified channel if CHANNEL_ID is set
@@ -506,9 +512,17 @@ async def on_message(message):
                                 await channel.send(f"Employee {message.author.name} has been terminated for malice.")
                         else:
                             await notify_sudo_members("Please set the channel ID using /null start", guild)
-                    except discord.Forbidden:
+                    except discord.errors.Forbidden:
                         print(f"Could not kick {message.author.name} from {guild.name}. Insufficient permissions.")
             return
+
+    if message.content.lower() == "yes":
+        await message.author.send(get_random_response(YES_RESPONSES))
+    elif message.content.lower() == "no":
+        await message.author.send(get_random_response(NO_RESPONSES))
+
+    await bot.process_commands(message)
+
 
 
     if message.content.lower() == "yes":
