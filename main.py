@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands, tasks
-from discord.ext.commands import CommandNotFound
+from discord.ext.commands import CommandNotFound, CooldownMapping, BucketType
 import random
 from datetime import datetime, timedelta
 import os
@@ -39,7 +39,7 @@ NAMES = [
 
 # Track last command timestamps for spam protection
 COMMAND_COOLDOWN = 5  # seconds
-user_last_command_time = defaultdict(lambda: datetime.min)
+cooldown_mapping = CooldownMapping.from_cooldown(1, COMMAND_COOLDOWN, BucketType.user)
 
 # Game state
 game_running = False
@@ -68,10 +68,10 @@ def generate_employee_id(hacker_id):
 
 async def is_on_cooldown(user_id):
     now = datetime.now()
-    last_command_time = user_last_command_time[user_id]
-    if (now - last_command_time).seconds < COMMAND_COOLDOWN:
+    bucket = cooldown_mapping.get_bucket(None)
+    retry_after = bucket.update_rate_limit()
+    if retry_after:
         return True
-    user_last_command_time[user_id] = now
     return False
 
 async def send_voting_statistics():
@@ -451,54 +451,6 @@ async def round_timer():
 @round_timer.before_loop
 async def before_round_timer():
     await bot.wait_until_ready()
-
-# @bot.event
-# async def on_message(message):
-#     if message.author == bot.user:
-#         return
-
-#     if await is_on_cooldown(message.author.id):
-#         # Increment the warning count for the user
-#         warnings[message.author.id] = warnings.get(message.author.id, 0) + 1
-
-#         # Log the warning count
-#         print(f"User {message.author.name} has been warned. Total warnings: {warnings[message.author.id]}")
-
-#         # Send a warning message to the user
-#         await message.channel.send("You are sending commands too quickly. Please wait 10 seconds. Abuse will result in being kicked/banned. Malice noted.")
-
-#         # If the user has been warned three times, notify the sudo members
-#         if warnings[message.author.id] == 3:
-#             await notify_sudo_members(f"User {message.author.name} (ID: {message.author.id}) has been warned for spamming commands. They have been warned {warnings[message.author.id]} times.")
-
-#         # If the user has been warned ten times, kick the user from all guilds and notify sudo members
-#         if warnings[message.author.id] >= 10:
-#             for guild in bot.guilds:
-#                 member = guild.get_member(message.author.id)
-#                 if member:
-#                     try:
-#                         await member.kick(reason="Exceeded maximum warnings for spamming commands")
-#                         print(f"User {message.author.name} has been kicked from {guild.name} for spamming commands.")
-
-#                         # Notify the sudo members
-#                         sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
-#                         if not sudo_role:
-#                             print(f"Sudo role not found in guild: {guild.name}")
-#                         else:
-#                             kick_message = (
-#                                 f"User {message.author.name} (ID: {message.author.id}) has been kicked for spamming commands. "
-#                                 f"They received {warnings[message.author.id]} warnings."
-#                             )
-#                             for member in guild.members:
-#                                 if sudo_role in member.roles and member != bot.user:
-#                                     try:
-#                                         await member.send(kick_message)
-#                                         print(f"Sent kick notification to {member.display_name}")
-#                                     except discord.Forbidden:
-#                                         print(f"Could not send message to {member.display_name}")
-#                     except discord.Forbidden:
-#                         print(f"Could not kick {message.author.name} from {guild.name}. Insufficient permissions.")
-#             return
 
 @bot.event
 async def on_message(message):
