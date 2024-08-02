@@ -82,8 +82,13 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nullhau:${{ github.sha }} .
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nullhau:${{ github.sha }}
+        IMAGE_NAME="${{ secrets.DOCKER_HUB_USERNAME }}/nullhau"
+        COMMIT_SHA="${{ github.sha }}"
+        echo "IMAGE_NAME=${IMAGE_NAME}"
+        echo "COMMIT_SHA=${COMMIT_SHA}"
+        docker build -t $IMAGE_NAME:$COMMIT_SHA -t $IMAGE_NAME:latest .
+        docker push $IMAGE_NAME:$COMMIT_SHA
+        docker push $IMAGE_NAME:latest
 
     - name: Set up kubectl
       uses: Azure/setup-kubectl@v1
