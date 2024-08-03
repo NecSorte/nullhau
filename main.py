@@ -276,6 +276,32 @@ DOWNLOADED: 4612 - FOUND: 22
         failure_response = random.choice(FAILURE_RESPONSES)
         await ctx.author.send(failure_response)
 
+@bot.command(name='top')
+async def top(ctx):
+    success_response = random.choice(SUCCESS_RESPONSES)
+    top_response = """
+
+```
+PID USER      %CPU %MEM    TIME+ COMMAND
+847 root      3.7   1.2   0:02.37 some_process
+ 41 root      0.7   0.0   0:00.05 other_process
+1174 kali      0.7   1.4   0:00.32 another_process
+914 rtkit     0.3   0.0   0:00.01 more_process
+1117 kali      0.3   0.0   0:00.07 yet_another
+1530 kali      0.3   1.2   0:00.40 final_process
+2054 anom      90.0 87.0   1:23.45 stegano_process
+2235 alice     2.4   0.6   0:10.20 background_task
+3421 bob       5.8   2.1   0:15.30 long_running
+4512 charlie   1.1   0.3   0:05.12 idle_service
+5633 dave      4.6   1.7   0:08.21 network_monitor
+```
+    """
+    await ctx.author.send(
+        f"{top_response}\n"
+        f"{success_response}\n"
+    )
+
+
 @bot.command(name='null')
 async def null(ctx, action: str):
     global game_running, round_end_time, hacker_id, round_number, total_rounds, test_mode, voted_users, CHANNEL_ID
@@ -400,6 +426,7 @@ async def commands(ctx):
         "/vote <id_number> - Vote to eliminate an employee by their ID.\n"
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
         "/dirb <target> - Simulate an dirb scan on a target (just for fun).\n"
+        "/ps - shows recent processes\n"
         # "/null <start|stop> - Start or stop the hacker game.\n"
         # "/testmode <on|off> - Activate or deactivate test mode.\n"
         # "/set_hacker_id <id> - Set the hacker ID.\n"
@@ -424,7 +451,7 @@ async def round_timer():
                     game_running = False
                     round_timer.stop()
                     await send_voting_statistics()
-                    await notify_sudo_members("Game over. The hacker has been found!")
+                    await notify_sudo_members("GM 13371337")
                     return
             else:
                 await bot.get_channel(CHANNEL_ID).send("No votes received. No one has been terminated.")
@@ -451,54 +478,6 @@ async def round_timer():
 @round_timer.before_loop
 async def before_round_timer():
     await bot.wait_until_ready()
-
-# @bot.event
-# async def on_message(message):
-#     if message.author == bot.user:
-#         return
-
-#     if await is_on_cooldown(message.author.id):
-#         # Increment the warning count for the user
-#         warnings[message.author.id] = warnings.get(message.author.id, 0) + 1
-
-#         # Log the warning count
-#         print(f"User {message.author.name} has been warned. Total warnings: {warnings[message.author.id]}")
-
-#         # Send a warning message to the user
-#         await message.channel.send("You are sending commands too quickly. Please wait 10 seconds. Abuse will result in being kicked/banned. Malice noted.")
-
-#         # If the user has been warned three times, notify the sudo members
-#         if warnings[message.author.id] == 3:
-#             await notify_sudo_members(f"User {message.author.name} (ID: {message.author.id}) has been warned for spamming commands. They have been warned {warnings[message.author.id]} times.")
-
-#         # If the user has been warned ten times, kick the user from all guilds and notify sudo members
-#         if warnings[message.author.id] >= 10:
-#             for guild in bot.guilds:
-#                 member = guild.get_member(message.author.id)
-#                 if member:
-#                     try:
-#                         await member.kick(reason="Exceeded maximum warnings for spamming commands")
-#                         print(f"User {message.author.name} has been kicked from {guild.name} for spamming commands.")
-
-#                         # Notify the sudo members
-#                         sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
-#                         if not sudo_role:
-#                             print(f"Sudo role not found in guild: {guild.name}")
-#                         else:
-#                             kick_message = (
-#                                 f"User {message.author.name} (ID: {message.author.id}) has been kicked for spamming commands. "
-#                                 f"They received {warnings[message.author.id]} warnings."
-#                             )
-#                             for member in guild.members:
-#                                 if sudo_role in member.roles and member != bot.user:
-#                                     try:
-#                                         await member.send(kick_message)
-#                                         print(f"Sent kick notification to {member.display_name}")
-#                                     except discord.Forbidden:
-#                                         print(f"Could not send message to {member.display_name}")
-#                     except discord.Forbidden:
-#                         print(f"Could not kick {message.author.name} from {guild.name}. Insufficient permissions.")
-#             return
 
 @bot.event
 async def on_message(message):

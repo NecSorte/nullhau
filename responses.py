@@ -183,14 +183,19 @@ ROLE_FACTS = [
 WINDOWS_FACTS = """
 
 ```
-TBA
+Windows System Admin background: You're upset that Null doesn't want to use windows and azure for its 404th brain extension. When someone walks up to you for the first time, repeat the phrase “have you tried turning it off and on again?”.  You also claim to own the subnet 404.4.x.x. You also love coffee. 
+
+Side Quest for a hint: In order to prove to everyone that you don’t actually lick windows, host a competition between you and someone else, on how close you can get to licking windows, without, in fact, licking the window. Photo or in person proof is fine for who won. Show Null staff/security for the hint!
+
 ```
         """
 
-LINUX_FACTS = """
+CLOUD_SECURITY_ENGINEER_FACTS = """
 
 ```
-TBA
+Cloud Security Engineer: You are annoyed that Null keeps asking you to bypass “some of the world's greatest security”, when it's just the typical “I am not a robot” check, and finally convinces Null to stop asking you. You are also convinced that the cloud is just someone else’s computer and you take every opportunity to remind your colleagues of this fact. 
+
+Side quest for a hint:  You're convinced you're “more in the clouds” than someone else. In order to settle this debate, you must “out homelab” someone else in services, OR see who can jump the highest. Make sure someone from Null staff or security is around to judge. 
 ```
         """
 
@@ -221,10 +226,9 @@ Side quest for a hint: If you can convince someone to give you their left sock, 
 ```
         """
 
-
 ROLE_FACTS_MAPPING = {
     "Windows Admin": WINDOWS_FACTS,
-    "Linux Wizard": LINUX_FACTS,
+    "Cloud Security Engineer": CLOUD_SECURITY_ENGINEER_FACTS,
     "Pen Tester": PENTESTER_FACTS,
     "HR": HR_FACTS,
     "SOCk Analyst": SOCK_FACTS,
