@@ -132,6 +132,14 @@ async def badge(ctx):
         await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
         return
 
+    # Checks if the "Null Corp" role exists, create it if it doesn't
+    role = discord.utils.get(guild.roles, name="Null Corp")
+    if role is None:
+        role = await guild.create_role(name="Null Corp")
+
+    # Assign the "Null Corp" role to the user
+    await ctx.author.add_roles(role)
+
     employee_id = generate_employee_id(hacker_id)
     name = random.choice(NAMES)
     role = random.choice(list(ROLE_FACTS_MAPPING.keys()))
@@ -291,10 +299,10 @@ PID USER      %CPU %MEM    TIME+ COMMAND
 1117 kali      0.3   0.0   0:00.07 yet_another
 1530 kali      0.3   1.2   0:00.40 final_process
 2054 anom      90.0 87.0   1:23.45 image_process
-2235 alice     2.4   0.6   0:10.20 background_task
-3421 bob       5.8   2.1   0:15.30 long_running
-4512 charlie   1.1   0.3   0:05.12 idle_service
-5633 dave      4.6   1.7   0:08.21 network_monitor
+2235 alex     2.4   0.6   0:10.20 background_task
+3421 corey       5.8   2.1   0:15.30 long_running
+4512 kevin   1.1   0.3   0:05.12 idle_service
+5633 jon      4.6   1.7   0:08.21 network_monitor
 ```
     """
     await ctx.author.send(
@@ -427,7 +435,7 @@ async def commands(ctx):
         "/vote <id_number> - Vote to eliminate an employee by their ID.\n"
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
         "/dirb <target> - Simulate an dirb scan on a target (just for fun).\n"
-        "/top - shows recent processes\n"
+        "/top - shows recent processes \n"
         # "/null <start|stop> - Start or stop the hacker game.\n"
         # "/testmode <on|off> - Activate or deactivate test mode.\n"
         # "/set_hacker_id <id> - Set the hacker ID.\n"
