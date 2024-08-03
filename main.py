@@ -221,62 +221,6 @@ Host script results:
         failure_response = random.choice(FAILURE_RESPONSES)
         await ctx.author.send(failure_response)
 
-# @bot.command(name='dirb')
-# async def nmap(ctx, target: str):
-#     if target == "null404.org" or "www.null404.org" or "https:/www.null404.org" or "https://null404.org":
-#         success_response = random.choice(SUCCESS_RESPONSES)
-#         dirb_successs_response = random.choice(DIRB_SCAN_SUCCESS_RESPONSES)
-#         dirb_response = """
-
-# ```
-# -----------------
-# DIRB v2.22    
-# By NULL404
-# -----------------
-
-# START_TIME: Fri Aug 9 12:34:56 2024
-# URL_BASE: http://null404.org/
-# WORDLIST_FILES: /usr/share/dirb/wordlists/common.txt
-
-# -----------------
-
-# GENERATED WORDS: 4612                                                          
-
-# ---- Scanning URL: http://null404.org/ ----
-# + http://null404.org/config (CODE:403|SIZE:299)
-# + http://null404.org/index.html (CODE:200|SIZE:3456)
-# + http://null404.org/support-us (CODE:301|SIZE:0)
-# + http://null404.org/calendar (CODE:200|SIZE:412)
-# + http://null404.org/checkout (CODE:200|SIZE:1267)
-# + http://null404.org/contact (CODE:200|SIZE:789)
-# + http://null404.org/donate (CODE:200|SIZE:958)
-# + http://null404.org/favicon.ico (CODE:200|SIZE:150)
-# + http://null404.org/home (CODE:200|SIZE:2345)
-# + http://null404.org/join (CODE:200|SIZE:654)
-# + http://null404.org/logs (CODE:200|SIZE:122)
-# + http://null404.org/lost+found (CODE:404|SIZE:53)
-# + http://null404.org/party (CODE:200|SIZE:1034)
-# + http://null404.org/robots.txt (CODE:200|SIZE:67)
-# + http://null404.org/search (CODE:200|SIZE:1124)
-# + http://null404.org/shop (CODE:200|SIZE:1789)
-# + http://null404.org/sitemap.xml (CODE:200|SIZE:312)
-# + http://null404.org/sites/ (CODE:403|SIZE:211)
-# + http://null404.org/hidden-path/ (CODE:200|SIZE:211)
-# -----------------
-# END_TIME: Fri Aug 9 12:35:12 2024
-# DOWNLOADED: 4612 - FOUND: 22
-# ```
-#         """
-#         await ctx.author.send(
-#             f"{dirb_response}\n\n"
-#             f"{dirb_successs_response}\n"
-#         "")
-#     else:
-#         # Send a random failure response if the input is not valid
-#         failure_response = random.choice(FAILURE_RESPONSES)
-#         await ctx.author.send(failure_response)
-
-
 @bot.command(name='dirb')
 async def dirb(ctx, target: str):
     valid_targets = ["null404.org", "www.null404.org", "https://www.null404.org", "https://null404.org"]
@@ -478,7 +422,7 @@ async def say(ctx, *, text: str):
 @bot.command(name='commands')
 async def commands(ctx):
     help_text = (
-        "Here are the commands you can use:\n"
+        "Here are the commands you DM ME to use:\n"
         "/badge - Get your employee badge.\n"
         "/vote <id_number> - Vote to eliminate an employee by their ID.\n"
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
