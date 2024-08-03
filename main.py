@@ -483,7 +483,7 @@ async def commands(ctx):
         "/vote <id_number> - Vote to eliminate an employee by their ID.\n"
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
         "/dirb <target> - Simulate an dirb scan on a target (just for fun).\n"
-        "/too - shows recent processes\n"
+        "/top - shows recent processes\n"
         # "/null <start|stop> - Start or stop the hacker game.\n"
         # "/testmode <on|off> - Activate or deactivate test mode.\n"
         # "/set_hacker_id <id> - Set the hacker ID.\n"
