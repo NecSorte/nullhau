@@ -289,7 +289,7 @@ PID USER      %CPU %MEM    TIME+ COMMAND
 914 rtkit     0.3   0.0   0:00.01 more_process
 1117 kali      0.3   0.0   0:00.07 yet_another
 1530 kali      0.3   1.2   0:00.40 final_process
-2054 anom      90.0 87.0   1:23.45 stegano_process
+2054 anom      90.0 87.0   1:23.45 image_process
 2235 alice     2.4   0.6   0:10.20 background_task
 3421 bob       5.8   2.1   0:15.30 long_running
 4512 charlie   1.1   0.3   0:05.12 idle_service
@@ -426,7 +426,7 @@ async def commands(ctx):
         "/vote <id_number> - Vote to eliminate an employee by their ID.\n"
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
         "/dirb <target> - Simulate an dirb scan on a target (just for fun).\n"
-        "/ps - shows recent processes\n"
+        "/too - shows recent processes\n"
         # "/null <start|stop> - Start or stop the hacker game.\n"
         # "/testmode <on|off> - Activate or deactivate test mode.\n"
         # "/set_hacker_id <id> - Set the hacker ID.\n"
