@@ -451,10 +451,11 @@ async def commands(ctx):
         "/nmap <target> - Simulate an nmap scan on a target (just for fun).\n"
         "/dirb <target> - Simulate an dirb scan on a target (just for fun).\n"
         "/top - shows recent processes \n"
-        # "/null <start|stop> - Start or stop the hacker game.\n"
-        # "/testmode <on|off> - Activate or deactivate test mode.\n"
-        # "/set_hacker_id <id> - Set the hacker ID.\n"
-        # "/say <text> - Make the bot say something.\n"
+        # "/null <start|stop> - Start or stop the hacker game. (SUDO)\n"
+        # "/reset resets all values in the game (SUDO).\n"
+        # "/testmode <on|off> - Activate or deactivate test mode. (SUDO)\n"
+        # "/set_hacker_id <id> - Set the hacker ID. (SUDO)\n"
+        # "/say <text> - Make the bot say something. (SUDO)\n"
         "/commands - Show this help message."
     )
     await ctx.author.send(help_text)
