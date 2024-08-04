@@ -128,26 +128,22 @@ async def on_command_error(ctx, error):
 
 @bot.command(name='badge')
 async def badge(ctx):
-    # Check if the command is executed in a guild (server) context
-    if ctx.guild is None:
-        await ctx.author.send("This command can only be used within a server.")
-        return
-
     # Ensure the user doesn't already have a badge
     if ctx.author.id in employee_data:
         await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
         return
 
-    # Get the guild (server) object
-    guild = ctx.guild
+    # If the command is executed in a guild context, assign the role
+    if ctx.guild:
+        guild = ctx.guild
 
-    # Check if the "Null Corp" role exists, create it if it doesn't
-    role = discord.utils.get(guild.roles, name="Null Corp")
-    if role is None:
-        role = await guild.create_role(name="Null Corp")
+        # Check if the "Null Corp" role exists, create it if it doesn't
+        role = discord.utils.get(guild.roles, name="Null Corp")
+        if role is None:
+            role = await guild.create_role(name="Null Corp")
 
-    # Assign the "Null Corp" role to the user
-    await ctx.author.add_roles(role)
+        # Assign the "Null Corp" role to the user
+        await ctx.author.add_roles(role)
 
     # Generate employee data
     employee_id = generate_employee_id(hacker_id)
@@ -326,10 +322,16 @@ PID USER      %CPU %MEM    TIME+ COMMAND
 @bot.command(name='null')
 async def null(ctx, action: str):
     global game_running, round_end_time, hacker_id, round_number, total_rounds, test_mode, voted_users, CHANNEL_ID
-    guild = ctx.guild
-    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+    
+    if ctx.guild:
+        guild = ctx.guild
+        sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+        has_sudo_role = sudo_role and sudo_role in ctx.author.roles
+    else:
+        guild = None
+        has_sudo_role = True  # Allow sudo commands in DMs without role check
 
-    if sudo_role and sudo_role in ctx.author.roles:
+    if has_sudo_role:
         if action == 'start':
             if not game_running:
                 def check(m):
@@ -351,7 +353,8 @@ async def null(ctx, action: str):
                 total_rounds_msg = await bot.wait_for('message', check=check)
                 total_rounds = int(total_rounds_msg.content)
 
-                await bot.get_channel(CHANNEL_ID).send("Let the games begin! FIND THE HACKER!")
+                if guild:
+                    await bot.get_channel(CHANNEL_ID).send("Let the games begin! FIND THE HACKER!")
 
                 await testmode(ctx, test_mode_state)
                 await set_hacker_id(ctx, hacker_id_value)
@@ -600,10 +603,15 @@ async def automated_voting():
 async def reset(ctx):
     global game_running, round_end_time, votes, hacker_id, round_number, total_rounds, test_mode, voted_users, employee_data, warnings
 
-    guild = ctx.guild
-    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+    if ctx.guild:
+        guild = ctx.guild
+        sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+        has_sudo_role = sudo_role and sudo_role in ctx.author.roles
+    else:
+        guild = None
+        has_sudo_role = True  # Allow sudo commands in DMs without role check
 
-    if sudo_role and sudo_role in ctx.author.roles:
+    if has_sudo_role:
         game_running = False
         round_end_time = None
         votes.clear()
