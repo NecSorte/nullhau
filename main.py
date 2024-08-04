@@ -329,7 +329,7 @@ async def null(ctx, action: str):
         has_sudo_role = sudo_role and sudo_role in ctx.author.roles
     else:
         guild = None
-        has_sudo_role = True  # Allow sudo commands in DMs without role check
+        has_sudo_role = False  # Allow sudo commands in DMs without role check
 
     if has_sudo_role:
         if action == 'start':
