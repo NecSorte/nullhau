@@ -133,6 +133,12 @@ async def badge(ctx):
         await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
         return
 
+    # Log the context
+    if ctx.guild:
+        print(f"Command invoked in guild: {ctx.guild.name} by user: {ctx.author.name}")
+    else:
+        print(f"Command invoked in DM by user: {ctx.author.name}")
+
     # If the command is executed in a guild context, assign the role
     if ctx.guild:
         guild = ctx.guild
@@ -140,10 +146,26 @@ async def badge(ctx):
         # Check if the "Null Corp" role exists, create it if it doesn't
         role = discord.utils.get(guild.roles, name="Null Corp")
         if role is None:
-            role = await guild.create_role(name="Null Corp")
+            try:
+                role = await guild.create_role(name="Null Corp")
+                print(f"Role 'Null Corp' created in guild: {guild.name}")
+            except discord.Forbidden:
+                await ctx.author.send("I do not have permission to create roles in this server.")
+                return
+            except discord.HTTPException as e:
+                await ctx.author.send(f"An error occurred while creating the role: {e}")
+                return
 
         # Assign the "Null Corp" role to the user
-        await ctx.author.add_roles(role)
+        try:
+            await ctx.author.add_roles(role)
+            print(f"Role 'Null Corp' assigned to user: {ctx.author.name} in guild: {guild.name}")
+        except discord.Forbidden:
+            await ctx.author.send("I do not have permission to assign roles in this server.")
+            return
+        except discord.HTTPException as e:
+            await ctx.author.send(f"An error occurred while assigning the role: {e}")
+            return
 
     # Generate employee data
     employee_id = generate_employee_id(hacker_id)
@@ -171,6 +193,14 @@ async def badge(ctx):
         "DM me directly the commands. Don't let the others see what you're doing!\n"
         "For a list of commands, type `/commands`"
     )
+    print(f"Badge created for user: {ctx.author.name} (ID: {ctx.author.id})")
+
+# # Helper function to generate a unique employee ID
+# def generate_employee_id(hacker_id):
+#     while True:
+#         employee_id = random.randint(100000, 999999)
+#         if employee_id != hacker_id and employee_id not in [data['employee_id'] for data in employee_data.values()]:
+#             return employee_id
 
 @bot.command(name='vote')
 async def vote(ctx, id_number: str):
