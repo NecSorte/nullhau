@@ -596,6 +596,34 @@ async def automated_voting():
             print(f"Automated vote cast: Automated bot voted for {random_vote}")
         await asyncio.sleep(10)
 
+@bot.command(name='reset')
+async def reset(ctx):
+    global game_running, round_end_time, votes, hacker_id, round_number, total_rounds, test_mode, voted_users, employee_data, warnings
+
+    guild = ctx.guild
+    sudo_role = discord.utils.find(lambda r: r.name.lower() == SUDO_ROLE_NAME, guild.roles)
+
+    if sudo_role and sudo_role in ctx.author.roles:
+        game_running = False
+        round_end_time = None
+        votes.clear()
+        vote_times.clear()
+        hacker_id = None
+        round_number = 0
+        total_rounds = 0
+        employee_data.clear()
+        warnings.clear()
+        test_mode = False
+        voted_users.clear()
+        if round_timer.is_running():
+            round_timer.stop()
+
+        await ctx.author.send("The game has been reset.")
+    else:
+        await ctx.author.send("You do not have permission to use this command.")
+        await ctx.author.send(f"{random.choice(FAILURE_RESPONSES)}")
+
+
 bot_token = os.getenv('NULLBOT_TOKEN')
 if bot_token:
     bot.run(bot_token)
