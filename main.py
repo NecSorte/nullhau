@@ -128,11 +128,20 @@ async def on_command_error(ctx, error):
 
 @bot.command(name='badge')
 async def badge(ctx):
+    # Check if the command is executed in a guild (server) context
+    if ctx.guild is None:
+        await ctx.author.send("This command can only be used within a server.")
+        return
+
+    # Ensure the user doesn't already have a badge
     if ctx.author.id in employee_data:
         await ctx.author.send(get_random_response(INVALID_COMMAND_RESPONSES))
         return
 
-    # Checks if the "Null Corp" role exists, create it if it doesn't
+    # Get the guild (server) object
+    guild = ctx.guild
+
+    # Check if the "Null Corp" role exists, create it if it doesn't
     role = discord.utils.get(guild.roles, name="Null Corp")
     if role is None:
         role = await guild.create_role(name="Null Corp")
@@ -140,27 +149,30 @@ async def badge(ctx):
     # Assign the "Null Corp" role to the user
     await ctx.author.add_roles(role)
 
+    # Generate employee data
     employee_id = generate_employee_id(hacker_id)
     name = random.choice(NAMES)
-    role = random.choice(list(ROLE_FACTS_MAPPING.keys()))
-    role_fact = ROLE_FACTS_MAPPING.get(role, random.choice(ROLE_FACTS))
+    role_name = random.choice(list(ROLE_FACTS_MAPPING.keys()))
+    role_fact = ROLE_FACTS_MAPPING.get(role_name, random.choice(ROLE_FACTS))
 
+    # Store employee data
     employee_data[ctx.author.id] = {
         "employee_id": employee_id,
         "name": name,
-        "role": role,
+        "role": role_name,
         "role_fact": role_fact,
     }
 
+    # Send a message to the user with their badge information
     welcome_message = get_random_response(WELCOME_RESPONSES)
     await ctx.author.send(
         f"{welcome_message}\n"
         f"Badge created!\n"
         f"Employee ID: {employee_id}\n"
         f"Name: {name}\n"
-        f"Role: {role}\n"
+        f"Role: {role_name}\n"
         f"Role Fact: {role_fact}\n"
-        "DM me directly the commands. Don't let the others see what your doing!"
+        "DM me directly the commands. Don't let the others see what you're doing!\n"
         "For a list of commands, type `/commands`"
     )
 
